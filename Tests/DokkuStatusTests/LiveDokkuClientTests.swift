@@ -90,6 +90,121 @@ final class LiveDokkuClientTests: XCTestCase {
         XCTAssertEqual(parsed.rawStatus.lowercased(), "exited")
     }
 
+    func testParseInspectDetailsFromLiveCharretteExtractsOpsEssentials() throws {
+        let output = try fixture(named: "ps-inspect-charrette.json")
+
+        let details = try LiveDokkuClient.parseInspectDetails(output, appName: "charrette")
+
+        XCTAssertEqual(details.processes.map(\.identifier), ["web.1"])
+        XCTAssertEqual(details.domains, ["charrette.pendyala.net"])
+        XCTAssertEqual(details.portMappings, ["http:80:3000", "https:443:3000"])
+        XCTAssertEqual(
+            details.mounts,
+            [
+                AppMountInfo(
+                    source: "/var/lib/dokku/data/storage/charrette",
+                    destination: "/data",
+                    isReadOnly: false,
+                    type: "bind"
+                )
+            ]
+        )
+        XCTAssertEqual(details.restartPolicy, "on-failure:10")
+    }
+
+    func testParseInspectDetailsFromLiveVeronaSupportsMultipleProcesses() throws {
+        let output = try fixture(named: "ps-inspect-verona.json")
+
+        let details = try LiveDokkuClient.parseInspectDetails(output, appName: "verona")
+
+        XCTAssertEqual(details.processes.map(\.identifier), ["bot.1", "web.1"])
+        let botProcess = try XCTUnwrap(details.processes.first(where: { $0.identifier == "bot.1" }))
+        XCTAssertFalse(botProcess.running)
+        XCTAssertEqual(botProcess.exitCode, 137)
+        XCTAssertEqual(details.domains, ["verona.pendyala.net"])
+        XCTAssertEqual(details.portMappings, ["https:443:5000"])
+        XCTAssertEqual(details.restartPolicy, "no")
+    }
+
+    func testParseInspectDetailsHandlesMissingNetworkFieldsGracefully() throws {
+        let output = """
+        [
+          {
+            "Name": "/worker.bot.1",
+            "State": {
+              "Running": false,
+              "Status": "exited",
+              "ExitCode": 12
+            },
+            "HostConfig": {
+              "RestartPolicy": {
+                "Name": "no",
+                "MaximumRetryCount": 0
+              }
+            },
+            "Config": {
+              "Labels": {
+                "com.dokku.dyno": "bot.1"
+              }
+            }
+          }
+        ]
+        """
+
+        let details = try LiveDokkuClient.parseInspectDetails(output, appName: "worker")
+
+        XCTAssertEqual(details.processes.map(\.identifier), ["bot.1"])
+        XCTAssertTrue(details.domains.isEmpty)
+        XCTAssertTrue(details.portMappings.isEmpty)
+        XCTAssertTrue(details.mounts.isEmpty)
+        XCTAssertEqual(details.restartPolicy, "no")
+    }
+
+    func testParseInspectDetailsFallsBackToHostConfigBindsWhenMountsMissing() throws {
+        let output = """
+        [
+          {
+            "Name": "/example.web.1",
+            "State": {
+              "Running": true,
+              "Status": "running",
+              "StartedAt": "2026-02-23T18:06:19.467671479Z"
+            },
+            "HostConfig": {
+              "Binds": [
+                "/data/source:/app/data:ro"
+              ],
+              "RestartPolicy": {
+                "Name": "always",
+                "MaximumRetryCount": 0
+              }
+            },
+            "Config": {
+              "Labels": {
+                "com.dokku.dyno": "web.1"
+              }
+            }
+          }
+        ]
+        """
+
+        let details = try LiveDokkuClient.parseInspectDetails(output, appName: "example")
+
+        XCTAssertEqual(details.processes.map(\.identifier), ["web.1"])
+        XCTAssertEqual(details.restartPolicy, "always")
+        XCTAssertEqual(
+            details.mounts,
+            [
+                AppMountInfo(
+                    source: "/data/source",
+                    destination: "/app/data",
+                    isReadOnly: true,
+                    type: "bind"
+                )
+            ]
+        )
+    }
+
     func testParseInspectStatusThrowsWhenInvalidJSON() {
         XCTAssertThrowsError(try LiveDokkuClient.parseInspectStatus("No status here", appName: "app-one"))
     }
@@ -115,10 +230,12 @@ final class LiveDokkuClientTests: XCTestCase {
         XCTAssertEqual(statuses.count, 2)
         XCTAssertEqual(statuses[0].appName, "app-one")
         XCTAssertEqual(statuses[0].state, .running)
+        XCTAssertNotNil(statuses[0].details)
 
         XCTAssertEqual(statuses[1].appName, "app-two")
         XCTAssertEqual(statuses[1].state, .unknown)
         XCTAssertNotNil(statuses[1].errorMessage)
+        XCTAssertNil(statuses[1].details)
     }
 
     func testFetchAppStatusesThrowsWhenDiscoveryFails() async {

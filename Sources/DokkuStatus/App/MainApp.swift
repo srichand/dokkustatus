@@ -40,9 +40,17 @@ private struct MenuBarStatusLabel: View {
     @Environment(\.openSettings) private var openSettings
 
     var body: some View {
-        Image(systemName: MenuBarController.symbolName(for: store.aggregateState))
-            .symbolRenderingMode(.multicolor)
-            .accessibilityLabel("Dokku status: \(store.aggregateState.title)")
+        let metrics = store.menuStatusMetrics
+
+        HStack(spacing: 4) {
+            Image(systemName: MenuBarController.symbolName(for: store.aggregateState))
+                .symbolRenderingMode(.multicolor)
+
+            Text(MenuBarController.menuBarCountText(metrics: metrics))
+                .font(.caption)
+                .monospacedDigit()
+        }
+        .accessibilityLabel("Dokku status: \(store.aggregateState.title), \(MenuBarController.menuBarCountText(metrics: metrics))")
             .onAppear {
                 store.handleLaunch(showSettings: {
                     openSettings()

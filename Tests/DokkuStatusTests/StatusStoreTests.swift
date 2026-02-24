@@ -18,12 +18,16 @@ final class StatusStoreTests: XCTestCase {
 
         let store = HostConfigStore(defaults: defaults)
         let config = DokkuHostConfig(host: "example.com", user: "dokku", port: 22, sshAlias: "prod")
+        let ignoredApps = ["verona", "popcorn"]
+        let ignoredByProfile = [config.profileIdentifier: ignoredApps]
 
         try store.saveActive(config)
         try store.saveSavedProfiles([config])
+        try store.saveIgnoredAppsByProfile(ignoredByProfile)
 
         XCTAssertEqual(store.loadActive(), config)
         XCTAssertEqual(store.loadSavedProfiles(), [config])
+        XCTAssertEqual(store.loadIgnoredAppsByProfile(), [config.profileIdentifier: ["popcorn", "verona"]])
     }
 
     func testAggregateStateHealthyPartialAndError() {
@@ -200,6 +204,202 @@ final class StatusStoreTests: XCTestCase {
 
         XCTAssertEqual(store.hostConfig, sshConfig)
     }
+
+    @MainActor
+    func testRefreshFiltersIgnoredApps() async {
+        let now = Date()
+        let statuses = [
+            AppStatus(appName: "charrette", state: .running, rawStatus: "running", checkedAt: now, errorMessage: nil),
+            AppStatus(appName: "verona", state: .notRunning, rawStatus: "exited", checkedAt: now, errorMessage: nil)
+        ]
+
+        let client = MockDokkuClient(results: [.success(statuses)])
+        let configStore = InMemoryHostConfigStore(
+            config: DokkuHostConfig(host: "example.com", user: "dokku", port: 22, sshAlias: nil),
+            ignoredApps: ["verona"]
+        )
+
+        let store = StatusStore(dokkuClient: client, configStore: configStore)
+
+        await store.refreshNow()
+
+        XCTAssertEqual(store.apps.map(\.appName), ["charrette"])
+        XCTAssertEqual(store.aggregateState, .healthy)
+    }
+
+    @MainActor
+    func testAddingIgnoredAppFiltersSnapshotImmediately() async {
+        let now = Date()
+        let statuses = [
+            AppStatus(appName: "charrette", state: .running, rawStatus: "running", checkedAt: now, errorMessage: nil),
+            AppStatus(appName: "verona", state: .notRunning, rawStatus: "exited", checkedAt: now, errorMessage: nil)
+        ]
+
+        let client = MockDokkuClient(results: [.success(statuses)])
+        let configStore = InMemoryHostConfigStore(
+            config: DokkuHostConfig(host: "example.com", user: "dokku", port: 22, sshAlias: nil)
+        )
+        let store = StatusStore(dokkuClient: client, configStore: configStore)
+
+        await store.refreshNow()
+        XCTAssertEqual(store.apps.count, 2)
+
+        XCTAssertNil(store.addIgnoredApp("verona"))
+        XCTAssertEqual(store.apps.map(\.appName), ["charrette"])
+        let profileIdentifier = DokkuHostConfig(
+            host: "example.com",
+            user: "dokku",
+            port: 22,
+            sshAlias: nil
+        ).profileIdentifier
+        XCTAssertEqual(configStore.loadIgnoredAppsByProfile()[profileIdentifier], ["verona"])
+    }
+
+    @MainActor
+    func testRemovingIgnoredAppRestoresFromLastSnapshot() async {
+        let now = Date()
+        let statuses = [
+            AppStatus(appName: "charrette", state: .running, rawStatus: "running", checkedAt: now, errorMessage: nil),
+            AppStatus(appName: "verona", state: .notRunning, rawStatus: "exited", checkedAt: now, errorMessage: nil)
+        ]
+
+        let client = MockDokkuClient(results: [.success(statuses)])
+        let configStore = InMemoryHostConfigStore(
+            config: DokkuHostConfig(host: "example.com", user: "dokku", port: 22, sshAlias: nil),
+            ignoredApps: ["verona"]
+        )
+        let store = StatusStore(dokkuClient: client, configStore: configStore)
+
+        await store.refreshNow()
+        XCTAssertEqual(store.apps.map(\.appName), ["charrette"])
+
+        store.removeIgnoredApp("verona")
+
+        XCTAssertEqual(Set(store.apps.map(\.appName)), Set(["charrette", "verona"]))
+    }
+
+    @MainActor
+    func testIgnoredAppsAreScopedPerHostProfile() async {
+        let primaryConfig = DokkuHostConfig(host: "primary.example.com", user: "dokku", port: 22, sshAlias: "primary")
+        let secondaryConfig = DokkuHostConfig(host: "secondary.example.com", user: "dokku", port: 22, sshAlias: "secondary")
+        let status = AppStatus(appName: "verona", state: .running, rawStatus: "running", checkedAt: Date(), errorMessage: nil)
+
+        let client = MockDokkuClient(results: [.success([status]), .success([status])])
+        let store = StatusStore(
+            dokkuClient: client,
+            configStore: InMemoryHostConfigStore(config: primaryConfig, savedProfiles: [primaryConfig, secondaryConfig]),
+            defaultProvider: MockDefaultProvider(config: primaryConfig, profiles: [secondaryConfig])
+        )
+
+        await store.refreshNow()
+        XCTAssertNil(store.addIgnoredApp("verona"))
+        XCTAssertEqual(store.apps.count, 0)
+
+        guard let secondaryOptionID = store.availableProfiles.first(where: { $0.config == secondaryConfig })?.id else {
+            XCTFail("Expected secondary profile option.")
+            return
+        }
+
+        store.activateHostProfile(optionID: secondaryOptionID)
+        await store.refreshNow()
+
+        XCTAssertEqual(store.ignoredApps, [])
+        XCTAssertEqual(store.apps.map(\.appName), ["verona"])
+    }
+
+    @MainActor
+    func testMenuStatusMetricsUsesVisibleAppsAfterIgnoredFiltering() async {
+        let now = Date()
+        let statuses = [
+            AppStatus(appName: "charrette", state: .running, rawStatus: "running", checkedAt: now, errorMessage: nil),
+            AppStatus(appName: "verona", state: .notRunning, rawStatus: "exited", checkedAt: now, errorMessage: nil),
+            AppStatus(appName: "popcorn", state: .unknown, rawStatus: nil, checkedAt: now, errorMessage: "timeout")
+        ]
+
+        let client = MockDokkuClient(results: [.success(statuses)])
+        let configStore = InMemoryHostConfigStore(
+            config: DokkuHostConfig(host: "example.com", user: "dokku", port: 22, sshAlias: nil),
+            ignoredApps: ["verona"]
+        )
+        let store = StatusStore(dokkuClient: client, configStore: configStore)
+
+        await store.refreshNow()
+        let metrics = store.menuStatusMetrics
+
+        XCTAssertEqual(metrics.total, 2)
+        XCTAssertEqual(metrics.running, 1)
+        XCTAssertEqual(metrics.notRunning, 0)
+        XCTAssertEqual(metrics.unknown, 1)
+        XCTAssertEqual(metrics.impactedNames, ["popcorn"])
+        XCTAssertTrue(metrics.hasChecked)
+    }
+
+    @MainActor
+    func testMenuStatusMetricsNoChecksYetIsUnknown() {
+        let store = StatusStore(
+            dokkuClient: MockDokkuClient(results: []),
+            configStore: InMemoryHostConfigStore(config: DokkuHostConfig(host: "example.com", user: "dokku", port: 22, sshAlias: nil))
+        )
+
+        let metrics = store.menuStatusMetrics
+        XCTAssertEqual(metrics.total, 0)
+        XCTAssertEqual(metrics.running, 0)
+        XCTAssertEqual(metrics.notRunning, 0)
+        XCTAssertEqual(metrics.unknown, 0)
+        XCTAssertEqual(metrics.impactedNames, [])
+        XCTAssertFalse(metrics.hasChecked)
+    }
+
+    @MainActor
+    func testMenuStatusMetricsPreservesLastSnapshotAfterRefreshFailure() async {
+        let now = Date()
+        let statuses = [
+            AppStatus(appName: "charrette", state: .running, rawStatus: "running", checkedAt: now, errorMessage: nil),
+            AppStatus(appName: "verona", state: .notRunning, rawStatus: "exited", checkedAt: now, errorMessage: nil)
+        ]
+
+        let client = MockDokkuClient(results: [.success(statuses), .failure(MockError.failed)])
+        let configStore = InMemoryHostConfigStore(
+            config: DokkuHostConfig(host: "example.com", user: "dokku", port: 22, sshAlias: nil)
+        )
+        let store = StatusStore(dokkuClient: client, configStore: configStore)
+
+        await store.refreshNow()
+        await store.refreshNow()
+        let metrics = store.menuStatusMetrics
+
+        XCTAssertEqual(metrics.total, 2)
+        XCTAssertEqual(metrics.running, 1)
+        XCTAssertEqual(metrics.notRunning, 1)
+        XCTAssertEqual(metrics.unknown, 0)
+        XCTAssertEqual(metrics.impactedNames, ["verona"])
+        XCTAssertTrue(metrics.hasChecked)
+    }
+
+    @MainActor
+    func testOrderedAppsForMenuSortsByStateThenAlphabetical() async {
+        let now = Date()
+        let statuses = [
+            AppStatus(appName: "zeta", state: .running, rawStatus: "running", checkedAt: now, errorMessage: nil),
+            AppStatus(appName: "beta", state: .notRunning, rawStatus: "exited", checkedAt: now, errorMessage: nil),
+            AppStatus(appName: "alpha", state: .unknown, rawStatus: nil, checkedAt: now, errorMessage: "timeout"),
+            AppStatus(appName: "delta", state: .unknown, rawStatus: nil, checkedAt: now, errorMessage: "timeout"),
+            AppStatus(appName: "aardvark", state: .notRunning, rawStatus: "crashed", checkedAt: now, errorMessage: nil),
+            AppStatus(appName: "gamma", state: .running, rawStatus: "running", checkedAt: now, errorMessage: nil)
+        ]
+
+        let store = StatusStore(
+            dokkuClient: MockDokkuClient(results: [.success(statuses)]),
+            configStore: InMemoryHostConfigStore(config: DokkuHostConfig(host: "example.com", user: "dokku", port: 22, sshAlias: nil))
+        )
+
+        await store.refreshNow()
+
+        XCTAssertEqual(
+            store.orderedAppsForMenu.map(\.appName),
+            ["aardvark", "beta", "alpha", "delta", "gamma", "zeta"]
+        )
+    }
 }
 
 private enum MockError: Error {
@@ -238,10 +438,20 @@ private actor MockDokkuClient: DokkuClient {
 private final class InMemoryHostConfigStore: HostConfigStoring {
     private var activeConfig: DokkuHostConfig?
     private var savedProfiles: [DokkuHostConfig]
+    private var ignoredAppsByProfile: [String: [String]]
 
-    init(config: DokkuHostConfig?, savedProfiles: [DokkuHostConfig]? = nil) {
+    init(
+        config: DokkuHostConfig?,
+        savedProfiles: [DokkuHostConfig]? = nil,
+        ignoredApps: [String] = []
+    ) {
         self.activeConfig = config
         self.savedProfiles = savedProfiles ?? config.map { [$0] } ?? []
+        if let config, !ignoredApps.isEmpty {
+            self.ignoredAppsByProfile = [config.profileIdentifier: ignoredApps]
+        } else {
+            self.ignoredAppsByProfile = [:]
+        }
     }
 
     func loadActive() -> DokkuHostConfig? {
@@ -262,6 +472,14 @@ private final class InMemoryHostConfigStore: HostConfigStoring {
 
     func saveSavedProfiles(_ profiles: [DokkuHostConfig]) throws {
         savedProfiles = profiles
+    }
+
+    func loadIgnoredAppsByProfile() -> [String: [String]] {
+        ignoredAppsByProfile
+    }
+
+    func saveIgnoredAppsByProfile(_ ignoredAppsByProfile: [String: [String]]) throws {
+        self.ignoredAppsByProfile = ignoredAppsByProfile
     }
 }
 

@@ -116,13 +116,15 @@ struct AppStatus: Identifiable, Codable, Equatable {
     let rawStatus: String?
     let checkedAt: Date
     let errorMessage: String?
+    let details: AppOperationalDetails?
 
     init(
         appName: String,
         state: AppHealthState,
         rawStatus: String?,
         checkedAt: Date,
-        errorMessage: String?
+        errorMessage: String?,
+        details: AppOperationalDetails? = nil
     ) {
         self.id = appName
         self.appName = appName
@@ -130,7 +132,41 @@ struct AppStatus: Identifiable, Codable, Equatable {
         self.rawStatus = rawStatus
         self.checkedAt = checkedAt
         self.errorMessage = errorMessage
+        self.details = details
     }
+}
+
+struct AppMountInfo: Codable, Equatable {
+    let source: String
+    let destination: String
+    let isReadOnly: Bool
+    let type: String
+}
+
+struct AppProcessInfo: Codable, Equatable {
+    let identifier: String
+    let running: Bool
+    let status: String?
+    let startedAt: Date?
+    let finishedAt: Date?
+    let exitCode: Int?
+}
+
+struct AppOperationalDetails: Codable, Equatable {
+    let processes: [AppProcessInfo]
+    let domains: [String]
+    let portMappings: [String]
+    let mounts: [AppMountInfo]
+    let restartPolicy: String?
+}
+
+struct MenuStatusMetrics: Equatable {
+    let total: Int
+    let running: Int
+    let notRunning: Int
+    let unknown: Int
+    let impactedNames: [String]
+    let hasChecked: Bool
 }
 
 enum AggregateState {
