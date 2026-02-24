@@ -2,64 +2,66 @@
     {
         "AppArmorProfile": "docker-default",
         "Args": [
-            "web"
+            "node",
+            "build"
         ],
         "Config": {
             "AttachStderr": true,
             "AttachStdin": false,
             "AttachStdout": true,
             "Cmd": [
-                "/start",
-                "web"
+                "node",
+                "build"
             ],
             "Domainname": "",
-            "Entrypoint": null,
-            "Env": [
-                "DYNO=web.1",
-                "PORT=5000",
-                "NODE_OPTIONS=XXXXXX",
-                "DATABASE_PATH=XXXXXX",
-                "DOKKU_APP_TYPE=herokuish",
-                "GIT_REV=XXXXXX",
-                "USER=herokuishuser",
-                "DOKKU_PROXY_PORT=80",
-                "DOKKU_APP_RESTORE=0",
-                "CURL_TIMEOUT=XXXXXX",
-                "DOKKU_PROXY_SSL_PORT=443",
-                "NODE_ENV=XXXXXX",
-                "CURL_CONNECT_TIMEOUT=XXXXXX",
-                "CACHE_PATH=/cache",
-                "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
-                "CNB_USER_ID=XXXXXX",
-                "CNB_GROUP_ID=XXXXXX",
-                "CNB_STACK_ID=XXXXXX",
-                "STACK=XXXXXX",
-                "DEBIAN_FRONTEND=XXXXXX",
-                "BASH_BIN=XXXXXX",
-                "HEROKUISH_DISABLE_CHOWN=XXXXXX",
-                "HEROKUISH_SETUIDGUID=XXXXXX"
+            "Entrypoint": [
+                "docker-entrypoint.sh"
             ],
-            "Hostname": "1b6f4454cbfa",
-            "Image": "dokku/popcorn:latest",
+            "Env": [
+                "DATA_DIR=XXXXXX",
+                "GIT_REV=XXXXXX",
+                "GOOGLE_CLIENT_ID=XXXXXX",
+                "RENDER_DEBUG=XXXXXX",
+                "BODY_SIZE_LIMIT=XXXXXX",
+                "CURL_CONNECT_TIMEOUT=XXXXXX",
+                "PORT=3000",
+                "DYNO=web.1",
+                "DOKKU_APP_RESTORE=1",
+                "DOKKU_PROXY_PORT=80",
+                "DOKKU_PROXY_SSL_PORT=443",
+                "GEMINI_API_KEY=XXXXXX",
+                "MAX_UPLOAD_SIZE=XXXXXX",
+                "NODE_ENV=XXXXXX",
+                "BETTER_AUTH_SECRET=XXXXXX",
+                "DOKKU_APP_TYPE=dockerfile",
+                "HOST=XXXXXX",
+                "RENDER_DEBUG_DIR=XXXXXX",
+                "CURL_TIMEOUT=XXXXXX",
+                "GOOGLE_CLIENT_SECRET=XXXXXX",
+                "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+                "NODE_VERSION=XXXXXX",
+                "YARN_VERSION=XXXXXX"
+            ],
+            "ExposedPorts": {
+                "3000/tcp": {}
+            },
+            "Hostname": "d4fda6d91409",
+            "Image": "dokku/app-alpha:latest",
             "Labels": {
-                "com.dokku.app-name": "popcorn",
-                "com.dokku.builder-type": "herokuish",
+                "com.dokku.app-name": "app-alpha",
+                "com.dokku.builder-type": "dockerfile",
                 "com.dokku.container-type": "deploy",
+                "com.dokku.docker-image-labeler/alternate-tags": "[\"app-alpha:20251110-152402-64a84cc\"]",
                 "com.dokku.dyno": "web.1",
                 "com.dokku.image-stage": "release",
                 "com.dokku.process-type": "web",
-                "com.gliderlabs.herokuish/stack": "heroku-24",
                 "dokku": "",
-                "io.buildpacks.base.distro.name": "ubuntu",
-                "io.buildpacks.base.distro.version": "24.04",
-                "io.buildpacks.base.homepage": "https://github.com/heroku/base-images",
-                "io.buildpacks.base.maintainer": "Heroku",
-                "openresty.access-log-path": "/var/log/nginx/popcorn-access.log",
+                "openresty.access-log-path": "/var/log/nginx/app-alpha-access.log",
                 "openresty.bind-address-ipv6": "::",
                 "openresty.client-body-timeout": "60s",
                 "openresty.client-header-timeout": "60s",
-                "openresty.domains": "popcorn.pendyala.net",
-                "openresty.error-log-path": "/var/log/nginx/popcorn-error.log",
+                "openresty.domains": "app-alpha.example.test",
+                "openresty.error-log-path": "/var/log/nginx/app-alpha-error.log",
                 "openresty.hsts": "true",
                 "openresty.hsts-include-subdomains": "true",
                 "openresty.hsts-max-age": "15724800",
@@ -68,7 +70,7 @@
                 "openresty.keepalive-timeout": "75s",
                 "openresty.letsencrypt": "false",
                 "openresty.lingering-timeout": "5s",
-                "openresty.port-mapping": "http:80:5000 https:443:5000",
+                "openresty.port-mapping": "http:80:3000 https:443:3000",
                 "openresty.proxy-buffer-size": "4k",
                 "openresty.proxy-buffering": "on",
                 "openresty.proxy-buffers": "8 4k",
@@ -82,34 +84,32 @@
                 "openresty.x-forwarded-port-value": "$server_port",
                 "openresty.x-forwarded-proto-value": "$scheme",
                 "org.label-schema.schema-version": "1.0",
-                "org.label-schema.vendor": "dokku",
-                "org.opencontainers.image.ref.name": "ubuntu",
-                "org.opencontainers.image.version": "24.04"
+                "org.label-schema.vendor": "dokku"
             },
             "OnBuild": null,
             "OpenStdin": false,
             "StdinOnce": false,
             "Tty": false,
-            "User": "herokuishuser",
+            "User": "",
             "Volumes": null,
             "WorkingDir": "/app"
         },
-        "Created": "2025-09-02T01:45:20.944967625Z",
+        "Created": "2026-02-23T18:06:17.596723305Z",
         "Driver": "overlay2",
         "ExecIDs": null,
         "GraphDriver": {
             "Data": {
-                "LowerDir": "/var/lib/docker/overlay2/5fc922791a700290a7a51678aa80b2f6952c99c716044f7f524423f236261a06-init/diff:/var/lib/docker/overlay2/xu07ypm2rtrb2ujgziquwgn73/diff:/var/lib/docker/overlay2/v2ab91iqzzsq2ok38sqm91cqg/diff:/var/lib/docker/overlay2/zfmbp2dbhk6lbrz10sd5ikmsv/diff:/var/lib/docker/overlay2/47f6bcc4ab1378d5bd7b20c4696e7074486aaf7fd081958f89868dcdec787513/diff:/var/lib/docker/overlay2/omkhgwl5s3h69ce1jj7tz4ous/diff:/var/lib/docker/overlay2/k5sftrudgl9mfn79sirkehrdc/diff:/var/lib/docker/overlay2/61zsmldnlhz3qtcmatce541r6/diff:/var/lib/docker/overlay2/z9yb7d9m2jf3se35eu8yjk3v9/diff:/var/lib/docker/overlay2/bh0wwm03y9e9icucrwfp5r2w2/diff:/var/lib/docker/overlay2/4d6bbe041adb6f8ba9a770819261be20525c1905a64149ddf34088bcacc69894/diff:/var/lib/docker/overlay2/b4d295f45cf9fc94c2c971ff76a8d689c078b0705dcc752699048a697f2a355d/diff:/var/lib/docker/overlay2/b1bf68a9389ab792d281aa00f18eea8c357e08f22a1e05bbd48a11b0850b579a/diff:/var/lib/docker/overlay2/c6037a3b42a8fce3fc88bc124927c17f0c7ad1ccd6210b08e4c208284b0d4bdd/diff:/var/lib/docker/overlay2/4615b41c213a4141558e8182a8a6447c535bbae53e8a0a1c2618ceb9ef097d92/diff:/var/lib/docker/overlay2/76a079be0946c1b288b9412687e978d6db784f15562da91c4f8624e40d7f4e0e/diff:/var/lib/docker/overlay2/8a53ee7d8731af528120fac398db0fc8fad53a1114929325052e61ad102ddc88/diff:/var/lib/docker/overlay2/b497308e74696e9e3e53162134d597da0d47ded2e2b434560895453c721c6074/diff:/var/lib/docker/overlay2/efefc64b17195db3c252951f63613be03b278a46c7087775ef667331375e99c1/diff",
-                "MergedDir": "/var/lib/docker/overlay2/5fc922791a700290a7a51678aa80b2f6952c99c716044f7f524423f236261a06/merged",
-                "UpperDir": "/var/lib/docker/overlay2/5fc922791a700290a7a51678aa80b2f6952c99c716044f7f524423f236261a06/diff",
-                "WorkDir": "/var/lib/docker/overlay2/5fc922791a700290a7a51678aa80b2f6952c99c716044f7f524423f236261a06/work"
+                "LowerDir": "/var/lib/docker/overlay2/ccd2d128ec58e2e6eab35ce372a434ff18856d6d49eacc37d41630003b9c62f6-init/diff:/var/lib/docker/overlay2/effbf090bc982cb94cd696453219950f82ed15c5e563a5cafaabc9e276e26cbe/diff:/var/lib/docker/overlay2/6fd20646af1b912241738c6143875dc54539ddd47922e82cec7b68cf49e80ba1/diff:/var/lib/docker/overlay2/14a8de4ed4b10ce20b163cdc5a6487d067be86dda8437c72017ea7786ae4089a/diff:/var/lib/docker/overlay2/2649b297c74fce56a3389e51a2ca8f1ef302f1253944c283d1d202fe9661a2fe/diff:/var/lib/docker/overlay2/5dfa4fb3a2b9f5a44c9d8e86e423db6b368809d9ada75e70658bab5b827954ff/diff:/var/lib/docker/overlay2/c31fc743beb8c13f5a11b5af6deeaf8bf7512ca292d5041c8fdbe65e5f7125ef/diff:/var/lib/docker/overlay2/251d6bb3e228a9fab86a4933137bc1fb591a9d278a253dcb918888a561b57969/diff:/var/lib/docker/overlay2/7d4b7280b926cc3b6ceec3b1db298f6f4a9f76d2ff0c8ea5c338669adaf570e3/diff:/var/lib/docker/overlay2/d3368e819f8c858a80e9f4a12282d3308b717044cbbdd45376a3c15f9f5b10d2/diff",
+                "MergedDir": "/var/lib/docker/overlay2/ccd2d128ec58e2e6eab35ce372a434ff18856d6d49eacc37d41630003b9c62f6/merged",
+                "UpperDir": "/var/lib/docker/overlay2/ccd2d128ec58e2e6eab35ce372a434ff18856d6d49eacc37d41630003b9c62f6/diff",
+                "WorkDir": "/var/lib/docker/overlay2/ccd2d128ec58e2e6eab35ce372a434ff18856d6d49eacc37d41630003b9c62f6/work"
             },
             "Name": "overlay2"
         },
         "HostConfig": {
             "AutoRemove": false,
             "Binds": [
-                "/var/lib/dokku/data/storage/popcorn:/app/data"
+                "/var/lib/dokku/data/storage/app-alpha:/data"
             ],
             "BlkioDeviceReadBps": [],
             "BlkioDeviceReadIOps": [],
@@ -204,79 +204,81 @@
             "VolumeDriver": "",
             "VolumesFrom": null
         },
-        "HostnamePath": "/var/lib/docker/containers/1b6f4454cbfae2663dcd5a8ac57839ecf2c4b4f0991435564e0fada0c7fc35d8/hostname",
-        "HostsPath": "/var/lib/docker/containers/1b6f4454cbfae2663dcd5a8ac57839ecf2c4b4f0991435564e0fada0c7fc35d8/hosts",
-        "Id": "1b6f4454cbfae2663dcd5a8ac57839ecf2c4b4f0991435564e0fada0c7fc35d8",
-        "Image": "sha256:42f340f579eca3f05af72e942791b90dc197d9d3380c3eb49cd65b4a4c3425ff",
-        "LogPath": "/var/lib/docker/containers/1b6f4454cbfae2663dcd5a8ac57839ecf2c4b4f0991435564e0fada0c7fc35d8/1b6f4454cbfae2663dcd5a8ac57839ecf2c4b4f0991435564e0fada0c7fc35d8-json.log",
+        "HostnamePath": "/var/lib/docker/containers/d4fda6d91409866e5cbbce1ef01d4dffd1c88c4742a8832e901afe422c9ce1e7/hostname",
+        "HostsPath": "/var/lib/docker/containers/d4fda6d91409866e5cbbce1ef01d4dffd1c88c4742a8832e901afe422c9ce1e7/hosts",
+        "Id": "d4fda6d91409866e5cbbce1ef01d4dffd1c88c4742a8832e901afe422c9ce1e7",
+        "Image": "sha256:e514f20135fa662a747f5f263e2ff74a5b0acd8ab69ec9612a86631386dd807b",
+        "LogPath": "/var/lib/docker/containers/d4fda6d91409866e5cbbce1ef01d4dffd1c88c4742a8832e901afe422c9ce1e7/d4fda6d91409866e5cbbce1ef01d4dffd1c88c4742a8832e901afe422c9ce1e7-json.log",
         "MountLabel": "",
         "Mounts": [
             {
-                "Destination": "/app/data",
+                "Destination": "/data",
                 "Mode": "",
                 "Propagation": "rprivate",
                 "RW": true,
-                "Source": "/var/lib/dokku/data/storage/popcorn",
+                "Source": "/var/lib/dokku/data/storage/app-alpha",
                 "Type": "bind"
             }
         ],
-        "Name": "/popcorn.web.1",
+        "Name": "/app-alpha.web.1",
         "NetworkSettings": {
             "Bridge": "",
-            "EndpointID": "688353584ce861b62f61a1e7199646bf624f33b22b286edbcbc10ed22fb2c00d",
+            "EndpointID": "cdcfdcb14232e404d6d499f9155ec2dfa394d1ccdf910402ee24b7ead5d10631",
             "Gateway": "10.0.0.1",
             "GlobalIPv6Address": "",
             "GlobalIPv6PrefixLen": 0,
             "HairpinMode": false,
-            "IPAddress": "10.0.0.2",
+            "IPAddress": "10.0.0.5",
             "IPPrefixLen": 24,
             "IPv6Gateway": "",
             "LinkLocalIPv6Address": "",
             "LinkLocalIPv6PrefixLen": 0,
-            "MacAddress": "02:42:0a:00:00:02",
+            "MacAddress": "02:42:0a:00:00:05",
             "Networks": {
                 "bridge": {
                     "Aliases": null,
                     "DNSNames": [
-                        "popcorn.web.1",
-                        "1b6f4454cbfa"
+                        "app-alpha.web.1",
+                        "d4fda6d91409"
                     ],
                     "DriverOpts": null,
-                    "EndpointID": "688353584ce861b62f61a1e7199646bf624f33b22b286edbcbc10ed22fb2c00d",
+                    "EndpointID": "cdcfdcb14232e404d6d499f9155ec2dfa394d1ccdf910402ee24b7ead5d10631",
                     "Gateway": "10.0.0.1",
                     "GlobalIPv6Address": "",
                     "GlobalIPv6PrefixLen": 0,
                     "IPAMConfig": null,
-                    "IPAddress": "10.0.0.2",
+                    "IPAddress": "10.0.0.5",
                     "IPPrefixLen": 24,
                     "IPv6Gateway": "",
                     "Links": null,
-                    "MacAddress": "02:42:0a:00:00:02",
+                    "MacAddress": "02:42:0a:00:00:05",
                     "NetworkID": "9499c5a4f93c96d1911b1f6258093fca0b1fe4aa774109cdbac38a94011abdb0"
                 }
             },
-            "Ports": {},
-            "SandboxID": "8f21b4abd160e29d4df8fdafeadfab7fa1c2ebe128417ba76e9d4d676d963889",
-            "SandboxKey": "/var/run/docker/netns/8f21b4abd160",
+            "Ports": {
+                "3000/tcp": null
+            },
+            "SandboxID": "ea8b964e3584f39d958c8aacf4204042248af090e00de82e9feed05ffca139af",
+            "SandboxKey": "/var/run/docker/netns/ea8b964e3584",
             "SecondaryIPAddresses": null,
             "SecondaryIPv6Addresses": null
         },
-        "Path": "/start",
+        "Path": "docker-entrypoint.sh",
         "Platform": "linux",
         "ProcessLabel": "",
-        "ResolvConfPath": "/var/lib/docker/containers/1b6f4454cbfae2663dcd5a8ac57839ecf2c4b4f0991435564e0fada0c7fc35d8/resolv.conf",
+        "ResolvConfPath": "/var/lib/docker/containers/d4fda6d91409866e5cbbce1ef01d4dffd1c88c4742a8832e901afe422c9ce1e7/resolv.conf",
         "RestartCount": 0,
         "State": {
             "Dead": false,
             "Error": "",
             "ExitCode": 0,
-            "FinishedAt": "2025-10-22T17:41:05.581233258Z",
+            "FinishedAt": "0001-01-01T00:00:00Z",
             "OOMKilled": false,
             "Paused": false,
-            "Pid": 1007,
+            "Pid": 2091794,
             "Restarting": false,
             "Running": true,
-            "StartedAt": "2025-10-22T17:43:06.561102347Z",
+            "StartedAt": "2026-02-23T18:06:19.467671479Z",
             "Status": "running"
         }
     }

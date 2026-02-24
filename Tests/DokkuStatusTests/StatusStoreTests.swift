@@ -18,7 +18,7 @@ final class StatusStoreTests: XCTestCase {
 
         let store = HostConfigStore(defaults: defaults)
         let config = DokkuHostConfig(host: "example.com", user: "dokku", port: 22, sshAlias: "prod")
-        let ignoredApps = ["verona", "popcorn"]
+        let ignoredApps = ["app-gamma", "app-beta"]
         let ignoredByProfile = [config.profileIdentifier: ignoredApps]
 
         try store.saveActive(config)
@@ -27,7 +27,7 @@ final class StatusStoreTests: XCTestCase {
 
         XCTAssertEqual(store.loadActive(), config)
         XCTAssertEqual(store.loadSavedProfiles(), [config])
-        XCTAssertEqual(store.loadIgnoredAppsByProfile(), [config.profileIdentifier: ["popcorn", "verona"]])
+        XCTAssertEqual(store.loadIgnoredAppsByProfile(), [config.profileIdentifier: ["app-beta", "app-gamma"]])
     }
 
     func testAggregateStateHealthyPartialAndError() {
@@ -209,21 +209,21 @@ final class StatusStoreTests: XCTestCase {
     func testRefreshFiltersIgnoredApps() async {
         let now = Date()
         let statuses = [
-            AppStatus(appName: "charrette", state: .running, rawStatus: "running", checkedAt: now, errorMessage: nil),
-            AppStatus(appName: "verona", state: .notRunning, rawStatus: "exited", checkedAt: now, errorMessage: nil)
+            AppStatus(appName: "app-alpha", state: .running, rawStatus: "running", checkedAt: now, errorMessage: nil),
+            AppStatus(appName: "app-gamma", state: .notRunning, rawStatus: "exited", checkedAt: now, errorMessage: nil)
         ]
 
         let client = MockDokkuClient(results: [.success(statuses)])
         let configStore = InMemoryHostConfigStore(
             config: DokkuHostConfig(host: "example.com", user: "dokku", port: 22, sshAlias: nil),
-            ignoredApps: ["verona"]
+            ignoredApps: ["app-gamma"]
         )
 
         let store = StatusStore(dokkuClient: client, configStore: configStore)
 
         await store.refreshNow()
 
-        XCTAssertEqual(store.apps.map(\.appName), ["charrette"])
+        XCTAssertEqual(store.apps.map(\.appName), ["app-alpha"])
         XCTAssertEqual(store.aggregateState, .healthy)
     }
 
@@ -231,8 +231,8 @@ final class StatusStoreTests: XCTestCase {
     func testAddingIgnoredAppFiltersSnapshotImmediately() async {
         let now = Date()
         let statuses = [
-            AppStatus(appName: "charrette", state: .running, rawStatus: "running", checkedAt: now, errorMessage: nil),
-            AppStatus(appName: "verona", state: .notRunning, rawStatus: "exited", checkedAt: now, errorMessage: nil)
+            AppStatus(appName: "app-alpha", state: .running, rawStatus: "running", checkedAt: now, errorMessage: nil),
+            AppStatus(appName: "app-gamma", state: .notRunning, rawStatus: "exited", checkedAt: now, errorMessage: nil)
         ]
 
         let client = MockDokkuClient(results: [.success(statuses)])
@@ -244,45 +244,45 @@ final class StatusStoreTests: XCTestCase {
         await store.refreshNow()
         XCTAssertEqual(store.apps.count, 2)
 
-        XCTAssertNil(store.addIgnoredApp("verona"))
-        XCTAssertEqual(store.apps.map(\.appName), ["charrette"])
+        XCTAssertNil(store.addIgnoredApp("app-gamma"))
+        XCTAssertEqual(store.apps.map(\.appName), ["app-alpha"])
         let profileIdentifier = DokkuHostConfig(
             host: "example.com",
             user: "dokku",
             port: 22,
             sshAlias: nil
         ).profileIdentifier
-        XCTAssertEqual(configStore.loadIgnoredAppsByProfile()[profileIdentifier], ["verona"])
+        XCTAssertEqual(configStore.loadIgnoredAppsByProfile()[profileIdentifier], ["app-gamma"])
     }
 
     @MainActor
     func testRemovingIgnoredAppRestoresFromLastSnapshot() async {
         let now = Date()
         let statuses = [
-            AppStatus(appName: "charrette", state: .running, rawStatus: "running", checkedAt: now, errorMessage: nil),
-            AppStatus(appName: "verona", state: .notRunning, rawStatus: "exited", checkedAt: now, errorMessage: nil)
+            AppStatus(appName: "app-alpha", state: .running, rawStatus: "running", checkedAt: now, errorMessage: nil),
+            AppStatus(appName: "app-gamma", state: .notRunning, rawStatus: "exited", checkedAt: now, errorMessage: nil)
         ]
 
         let client = MockDokkuClient(results: [.success(statuses)])
         let configStore = InMemoryHostConfigStore(
             config: DokkuHostConfig(host: "example.com", user: "dokku", port: 22, sshAlias: nil),
-            ignoredApps: ["verona"]
+            ignoredApps: ["app-gamma"]
         )
         let store = StatusStore(dokkuClient: client, configStore: configStore)
 
         await store.refreshNow()
-        XCTAssertEqual(store.apps.map(\.appName), ["charrette"])
+        XCTAssertEqual(store.apps.map(\.appName), ["app-alpha"])
 
-        store.removeIgnoredApp("verona")
+        store.removeIgnoredApp("app-gamma")
 
-        XCTAssertEqual(Set(store.apps.map(\.appName)), Set(["charrette", "verona"]))
+        XCTAssertEqual(Set(store.apps.map(\.appName)), Set(["app-alpha", "app-gamma"]))
     }
 
     @MainActor
     func testIgnoredAppsAreScopedPerHostProfile() async {
         let primaryConfig = DokkuHostConfig(host: "primary.example.com", user: "dokku", port: 22, sshAlias: "primary")
         let secondaryConfig = DokkuHostConfig(host: "secondary.example.com", user: "dokku", port: 22, sshAlias: "secondary")
-        let status = AppStatus(appName: "verona", state: .running, rawStatus: "running", checkedAt: Date(), errorMessage: nil)
+        let status = AppStatus(appName: "app-gamma", state: .running, rawStatus: "running", checkedAt: Date(), errorMessage: nil)
 
         let client = MockDokkuClient(results: [.success([status]), .success([status])])
         let store = StatusStore(
@@ -292,7 +292,7 @@ final class StatusStoreTests: XCTestCase {
         )
 
         await store.refreshNow()
-        XCTAssertNil(store.addIgnoredApp("verona"))
+        XCTAssertNil(store.addIgnoredApp("app-gamma"))
         XCTAssertEqual(store.apps.count, 0)
 
         guard let secondaryOptionID = store.availableProfiles.first(where: { $0.config == secondaryConfig })?.id else {
@@ -304,22 +304,22 @@ final class StatusStoreTests: XCTestCase {
         await store.refreshNow()
 
         XCTAssertEqual(store.ignoredApps, [])
-        XCTAssertEqual(store.apps.map(\.appName), ["verona"])
+        XCTAssertEqual(store.apps.map(\.appName), ["app-gamma"])
     }
 
     @MainActor
     func testMenuStatusMetricsUsesVisibleAppsAfterIgnoredFiltering() async {
         let now = Date()
         let statuses = [
-            AppStatus(appName: "charrette", state: .running, rawStatus: "running", checkedAt: now, errorMessage: nil),
-            AppStatus(appName: "verona", state: .notRunning, rawStatus: "exited", checkedAt: now, errorMessage: nil),
-            AppStatus(appName: "popcorn", state: .unknown, rawStatus: nil, checkedAt: now, errorMessage: "timeout")
+            AppStatus(appName: "app-alpha", state: .running, rawStatus: "running", checkedAt: now, errorMessage: nil),
+            AppStatus(appName: "app-gamma", state: .notRunning, rawStatus: "exited", checkedAt: now, errorMessage: nil),
+            AppStatus(appName: "app-beta", state: .unknown, rawStatus: nil, checkedAt: now, errorMessage: "timeout")
         ]
 
         let client = MockDokkuClient(results: [.success(statuses)])
         let configStore = InMemoryHostConfigStore(
             config: DokkuHostConfig(host: "example.com", user: "dokku", port: 22, sshAlias: nil),
-            ignoredApps: ["verona"]
+            ignoredApps: ["app-gamma"]
         )
         let store = StatusStore(dokkuClient: client, configStore: configStore)
 
@@ -330,7 +330,7 @@ final class StatusStoreTests: XCTestCase {
         XCTAssertEqual(metrics.running, 1)
         XCTAssertEqual(metrics.notRunning, 0)
         XCTAssertEqual(metrics.unknown, 1)
-        XCTAssertEqual(metrics.impactedNames, ["popcorn"])
+        XCTAssertEqual(metrics.impactedNames, ["app-beta"])
         XCTAssertTrue(metrics.hasChecked)
     }
 
@@ -354,8 +354,8 @@ final class StatusStoreTests: XCTestCase {
     func testMenuStatusMetricsPreservesLastSnapshotAfterRefreshFailure() async {
         let now = Date()
         let statuses = [
-            AppStatus(appName: "charrette", state: .running, rawStatus: "running", checkedAt: now, errorMessage: nil),
-            AppStatus(appName: "verona", state: .notRunning, rawStatus: "exited", checkedAt: now, errorMessage: nil)
+            AppStatus(appName: "app-alpha", state: .running, rawStatus: "running", checkedAt: now, errorMessage: nil),
+            AppStatus(appName: "app-gamma", state: .notRunning, rawStatus: "exited", checkedAt: now, errorMessage: nil)
         ]
 
         let client = MockDokkuClient(results: [.success(statuses), .failure(MockError.failed)])
@@ -372,7 +372,7 @@ final class StatusStoreTests: XCTestCase {
         XCTAssertEqual(metrics.running, 1)
         XCTAssertEqual(metrics.notRunning, 1)
         XCTAssertEqual(metrics.unknown, 0)
-        XCTAssertEqual(metrics.impactedNames, ["verona"])
+        XCTAssertEqual(metrics.impactedNames, ["app-gamma"])
         XCTAssertTrue(metrics.hasChecked)
     }
 

@@ -24,7 +24,27 @@ final class LiveDokkuClientTests: XCTestCase {
 
         let parsed = LiveDokkuClient.parseAppsList(output)
 
-        XCTAssertEqual(parsed, ["charrette", "popcorn", "verona"])
+        XCTAssertEqual(parsed, ["app-alpha", "app-beta", "app-gamma"])
+    }
+
+    func testParseLetsEncryptListFromFixture() throws {
+        let output = try fixture(named: "letsencrypt-list.txt")
+
+        let parsed = LiveDokkuClient.parseLetsEncryptList(output)
+
+        XCTAssertEqual(parsed.keys.sorted(), ["app-alpha", "app-beta", "app-gamma"])
+
+        let appGamma = try XCTUnwrap(parsed["app-gamma"])
+        XCTAssertEqual(appGamma.certificateExpiry, "2025-10-07 22:19:26")
+        XCTAssertEqual(appGamma.timeBeforeExpiry, "139d, 18h, 56m, 40s ago")
+        XCTAssertEqual(appGamma.timeBeforeRenewal, "169d, 18h, 56m, 40s ago")
+        XCTAssertTrue(appGamma.isExpired)
+        XCTAssertTrue(appGamma.renewalOverdue)
+
+        let appBeta = try XCTUnwrap(parsed["app-beta"])
+        XCTAssertEqual(appBeta.timeBeforeExpiry, "82d, 12h, 10m, 1s")
+        XCTAssertFalse(appBeta.isExpired)
+        XCTAssertFalse(appBeta.renewalOverdue)
     }
 
     func testParseInspectStatusRunningSingleContainer() throws {
@@ -63,46 +83,46 @@ final class LiveDokkuClientTests: XCTestCase {
         XCTAssertEqual(parsed.rawStatus, "exited")
     }
 
-    func testParseInspectStatusFromLiveCharretteRunning() throws {
-        let output = try fixture(named: "ps-inspect-charrette.json")
+    func testParseInspectStatusFromLiveAppAlphaRunning() throws {
+        let output = try fixture(named: "ps-inspect-app-alpha.json")
 
-        let parsed = try LiveDokkuClient.parseInspectStatus(output, appName: "charrette")
-
-        XCTAssertEqual(parsed.state, .running)
-        XCTAssertEqual(parsed.rawStatus.lowercased(), "running")
-    }
-
-    func testParseInspectStatusFromLivePopcornRunning() throws {
-        let output = try fixture(named: "ps-inspect-popcorn.json")
-
-        let parsed = try LiveDokkuClient.parseInspectStatus(output, appName: "popcorn")
+        let parsed = try LiveDokkuClient.parseInspectStatus(output, appName: "app-alpha")
 
         XCTAssertEqual(parsed.state, .running)
         XCTAssertEqual(parsed.rawStatus.lowercased(), "running")
     }
 
-    func testParseInspectStatusFromLiveVeronaNotRunning() throws {
-        let output = try fixture(named: "ps-inspect-verona.json")
+    func testParseInspectStatusFromLiveAppBetaRunning() throws {
+        let output = try fixture(named: "ps-inspect-app-beta.json")
 
-        let parsed = try LiveDokkuClient.parseInspectStatus(output, appName: "verona")
+        let parsed = try LiveDokkuClient.parseInspectStatus(output, appName: "app-beta")
+
+        XCTAssertEqual(parsed.state, .running)
+        XCTAssertEqual(parsed.rawStatus.lowercased(), "running")
+    }
+
+    func testParseInspectStatusFromLiveAppGammaNotRunning() throws {
+        let output = try fixture(named: "ps-inspect-app-gamma.json")
+
+        let parsed = try LiveDokkuClient.parseInspectStatus(output, appName: "app-gamma")
 
         XCTAssertEqual(parsed.state, .notRunning)
         XCTAssertEqual(parsed.rawStatus.lowercased(), "exited")
     }
 
-    func testParseInspectDetailsFromLiveCharretteExtractsOpsEssentials() throws {
-        let output = try fixture(named: "ps-inspect-charrette.json")
+    func testParseInspectDetailsFromLiveAppAlphaExtractsOpsEssentials() throws {
+        let output = try fixture(named: "ps-inspect-app-alpha.json")
 
-        let details = try LiveDokkuClient.parseInspectDetails(output, appName: "charrette")
+        let details = try LiveDokkuClient.parseInspectDetails(output, appName: "app-alpha")
 
         XCTAssertEqual(details.processes.map(\.identifier), ["web.1"])
-        XCTAssertEqual(details.domains, ["charrette.pendyala.net"])
+        XCTAssertEqual(details.domains, ["app-alpha.example.test"])
         XCTAssertEqual(details.portMappings, ["http:80:3000", "https:443:3000"])
         XCTAssertEqual(
             details.mounts,
             [
                 AppMountInfo(
-                    source: "/var/lib/dokku/data/storage/charrette",
+                    source: "/var/lib/dokku/data/storage/app-alpha",
                     destination: "/data",
                     isReadOnly: false,
                     type: "bind"
@@ -110,18 +130,40 @@ final class LiveDokkuClientTests: XCTestCase {
             ]
         )
         XCTAssertEqual(details.restartPolicy, "on-failure:10")
+
+        let process = try XCTUnwrap(details.processes.first)
+        XCTAssertEqual(process.processType, "web")
+        XCTAssertEqual(process.containerName, "app-alpha.web.1")
+        XCTAssertEqual(process.containerID, "d4fda6d91409")
+        XCTAssertEqual(process.restartCount, 0)
+        XCTAssertEqual(process.pid, 2_091_794)
+        XCTAssertFalse(process.restarting)
+        XCTAssertFalse(process.paused)
+        XCTAssertFalse(process.dead)
+        XCTAssertFalse(process.oomKilled)
+        XCTAssertEqual(process.image, "dokku/app-alpha:latest")
+        XCTAssertEqual(process.builderType, "dockerfile")
+        XCTAssertEqual(process.imageStage, "release")
+        XCTAssertNil(process.user)
+        XCTAssertEqual(process.workingDir, "/app")
+        XCTAssertEqual(process.command, "docker-entrypoint.sh node build")
+        XCTAssertEqual(process.networkMode, "bridge")
+        XCTAssertEqual(process.ipAddress, "10.0.0.5")
+        XCTAssertEqual(process.exposedPorts, ["3000/tcp"])
+        XCTAssertTrue(process.publishedPorts.isEmpty)
+        XCTAssertNotNil(process.logPath)
     }
 
-    func testParseInspectDetailsFromLiveVeronaSupportsMultipleProcesses() throws {
-        let output = try fixture(named: "ps-inspect-verona.json")
+    func testParseInspectDetailsFromLiveAppGammaSupportsMultipleProcesses() throws {
+        let output = try fixture(named: "ps-inspect-app-gamma.json")
 
-        let details = try LiveDokkuClient.parseInspectDetails(output, appName: "verona")
+        let details = try LiveDokkuClient.parseInspectDetails(output, appName: "app-gamma")
 
         XCTAssertEqual(details.processes.map(\.identifier), ["bot.1", "web.1"])
         let botProcess = try XCTUnwrap(details.processes.first(where: { $0.identifier == "bot.1" }))
         XCTAssertFalse(botProcess.running)
         XCTAssertEqual(botProcess.exitCode, 137)
-        XCTAssertEqual(details.domains, ["verona.pendyala.net"])
+        XCTAssertEqual(details.domains, ["app-gamma.example.test"])
         XCTAssertEqual(details.portMappings, ["https:443:5000"])
         XCTAssertEqual(details.restartPolicy, "no")
     }
@@ -236,6 +278,41 @@ final class LiveDokkuClientTests: XCTestCase {
         XCTAssertEqual(statuses[1].state, .unknown)
         XCTAssertNotNil(statuses[1].errorMessage)
         XCTAssertNil(statuses[1].details)
+    }
+
+    func testFetchAppStatusesIncludesLetsEncryptDataWhenAvailable() async throws {
+        let runner = MockSSHRunner(
+            responses: [
+                "dokku apps:list": .success(
+                    SSHCommandResult(stdout: "app-one\n", stderr: "", exitCode: 0)
+                ),
+                "dokku letsencrypt:list": .success(
+                    SSHCommandResult(
+                        stdout: """
+                        -----> App name           Certificate Expiry        Time before expiry        Time before renewal
+                        app-one                   2026-05-18 05:26:06       82d, 12h, 10m, 1s         52d, 12h, 10m, 1s
+                        """,
+                        stderr: "",
+                        exitCode: 0
+                    )
+                ),
+                "dokku ps:inspect 'app-one'": .success(
+                    SSHCommandResult(stdout: "[{\"State\":{\"Running\":true,\"Status\":\"running\"}}]", stderr: "", exitCode: 0)
+                )
+            ]
+        )
+
+        let client = LiveDokkuClient(runner: runner)
+        let config = DokkuHostConfig(host: "example.com", user: "dokku", port: 22, sshAlias: nil)
+
+        let statuses = try await client.fetchAppStatuses(config: config)
+        let status = try XCTUnwrap(statuses.first)
+        let cert = try XCTUnwrap(status.letsEncrypt)
+
+        XCTAssertEqual(cert.certificateExpiry, "2026-05-18 05:26:06")
+        XCTAssertEqual(cert.timeBeforeExpiry, "82d, 12h, 10m, 1s")
+        XCTAssertEqual(cert.timeBeforeRenewal, "52d, 12h, 10m, 1s")
+        XCTAssertFalse(cert.isExpired)
     }
 
     func testFetchAppStatusesThrowsWhenDiscoveryFails() async {

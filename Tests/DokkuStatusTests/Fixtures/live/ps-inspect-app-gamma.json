@@ -51,12 +51,12 @@
                 "8000/tcp": {}
             },
             "Hostname": "63e70a69ee55",
-            "Image": "srichand/verona:latest",
+            "Image": "ghcr.io/example/app-gamma:latest",
             "Labels": {
-                "com.dokku.app-name": "verona",
+                "com.dokku.app-name": "app-gamma",
                 "com.dokku.builder-type": "dockerfile",
                 "com.dokku.container-type": "deploy",
-                "com.dokku.docker-image-labeler/alternate-tags": "[\"ghcr.io/srichand/verona:4ab856f\"]",
+                "com.dokku.docker-image-labeler/alternate-tags": "[\"ghcr.io/example/app-gamma:4ab856f\"]",
                 "com.dokku.dyno": "bot.1",
                 "com.dokku.image-stage": "release",
                 "com.dokku.predeploy-phase": "true",
@@ -89,7 +89,7 @@
         "HostConfig": {
             "AutoRemove": false,
             "Binds": [
-                "/var/lib/dokku/data/storage/verona:/app/data"
+                "/var/lib/dokku/data/storage/app-gamma:/app/data"
             ],
             "BlkioDeviceReadBps": [],
             "BlkioDeviceReadIOps": [],
@@ -196,11 +196,11 @@
                 "Mode": "",
                 "Propagation": "rprivate",
                 "RW": true,
-                "Source": "/var/lib/dokku/data/storage/verona",
+                "Source": "/var/lib/dokku/data/storage/app-gamma",
                 "Type": "bind"
             }
         ],
-        "Name": "/verona.bot.1",
+        "Name": "/app-gamma.bot.1",
         "NetworkSettings": {
             "Bridge": "",
             "EndpointID": "",
@@ -218,7 +218,7 @@
                 "bridge": {
                     "Aliases": null,
                     "DNSNames": [
-                        "verona.bot.1",
+                        "app-gamma.bot.1",
                         "63e70a69ee55"
                     ],
                     "DriverOpts": null,
@@ -312,24 +312,24 @@
                 "8000/tcp": {}
             },
             "Hostname": "4c8ba6763848",
-            "Image": "srichand/verona:latest",
+            "Image": "ghcr.io/example/app-gamma:latest",
             "Labels": {
-                "com.dokku.app-name": "verona",
+                "com.dokku.app-name": "app-gamma",
                 "com.dokku.builder-type": "dockerfile",
                 "com.dokku.container-type": "deploy",
-                "com.dokku.docker-image-labeler/alternate-tags": "[\"ghcr.io/srichand/verona:4ab856f\"]",
+                "com.dokku.docker-image-labeler/alternate-tags": "[\"ghcr.io/example/app-gamma:4ab856f\"]",
                 "com.dokku.dyno": "web.1",
                 "com.dokku.image-stage": "release",
                 "com.dokku.predeploy-phase": "true",
                 "com.dokku.process-type": "web",
                 "dokku": "",
                 "dokku_phase_script": "predeploy",
-                "openresty.access-log-path": "/var/log/nginx/verona-access.log",
+                "openresty.access-log-path": "/var/log/nginx/app-gamma-access.log",
                 "openresty.bind-address-ipv6": "::",
                 "openresty.client-body-timeout": "60s",
                 "openresty.client-header-timeout": "60s",
-                "openresty.domains": "verona.pendyala.net",
-                "openresty.error-log-path": "/var/log/nginx/verona-error.log",
+                "openresty.domains": "app-gamma.example.test",
+                "openresty.error-log-path": "/var/log/nginx/app-gamma-error.log",
                 "openresty.hsts": "true",
                 "openresty.hsts-include-subdomains": "true",
                 "openresty.hsts-max-age": "15724800",
@@ -377,7 +377,7 @@
         "HostConfig": {
             "AutoRemove": false,
             "Binds": [
-                "/var/lib/dokku/data/storage/verona:/app/data"
+                "/var/lib/dokku/data/storage/app-gamma:/app/data"
             ],
             "BlkioDeviceReadBps": [],
             "BlkioDeviceReadIOps": [],
@@ -484,11 +484,11 @@
                 "Mode": "",
                 "Propagation": "rprivate",
                 "RW": true,
-                "Source": "/var/lib/dokku/data/storage/verona",
+                "Source": "/var/lib/dokku/data/storage/app-gamma",
                 "Type": "bind"
             }
         ],
-        "Name": "/verona.web.1",
+        "Name": "/app-gamma.web.1",
         "NetworkSettings": {
             "Bridge": "",
             "EndpointID": "",
@@ -506,7 +506,7 @@
                 "bridge": {
                     "Aliases": null,
                     "DNSNames": [
-                        "verona.web.1",
+                        "app-gamma.web.1",
                         "4c8ba6763848"
                     ],
                     "DriverOpts": null,

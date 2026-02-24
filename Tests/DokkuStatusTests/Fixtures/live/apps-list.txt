@@ -1,4 +1,4 @@
 =====> My Apps
-charrette
-popcorn
-verona
+app-alpha
+app-beta
+app-gamma

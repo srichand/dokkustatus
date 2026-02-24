@@ -1,0 +1,4 @@
+-----> App name           Certificate Expiry        Time before expiry        Time before renewal
+app-gamma                    2025-10-07 22:19:26       139d, 18h, 56m, 40s ago   169d, 18h, 56m, 40s ago
+app-beta                   2026-05-18 05:26:06       82d, 12h, 10m, 1s         52d, 12h, 10m, 1s
+app-alpha                 2026-05-24 17:01:57       88d, 23h, 45m, 52s        58d, 23h, 45m, 52s
