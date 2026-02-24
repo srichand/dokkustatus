@@ -117,6 +117,7 @@ struct AppStatus: Identifiable, Codable, Equatable {
     let checkedAt: Date
     let errorMessage: String?
     let details: AppOperationalDetails?
+    let letsEncrypt: AppLetsEncryptStatus?
 
     init(
         appName: String,
@@ -124,7 +125,8 @@ struct AppStatus: Identifiable, Codable, Equatable {
         rawStatus: String?,
         checkedAt: Date,
         errorMessage: String?,
-        details: AppOperationalDetails? = nil
+        details: AppOperationalDetails? = nil,
+        letsEncrypt: AppLetsEncryptStatus? = nil
     ) {
         self.id = appName
         self.appName = appName
@@ -133,6 +135,7 @@ struct AppStatus: Identifiable, Codable, Equatable {
         self.checkedAt = checkedAt
         self.errorMessage = errorMessage
         self.details = details
+        self.letsEncrypt = letsEncrypt
     }
 }
 
@@ -150,6 +153,91 @@ struct AppProcessInfo: Codable, Equatable {
     let startedAt: Date?
     let finishedAt: Date?
     let exitCode: Int?
+    let processType: String?
+    let containerName: String?
+    let containerID: String?
+    let createdAt: Date?
+    let restartCount: Int?
+    let pid: Int?
+    let restarting: Bool
+    let paused: Bool
+    let dead: Bool
+    let oomKilled: Bool
+    let stateError: String?
+    let image: String?
+    let builderType: String?
+    let stack: String?
+    let imageStage: String?
+    let user: String?
+    let workingDir: String?
+    let command: String?
+    let networkMode: String?
+    let ipAddress: String?
+    let exposedPorts: [String]
+    let publishedPorts: [String]
+    let logPath: String?
+
+    init(
+        identifier: String,
+        running: Bool,
+        status: String?,
+        startedAt: Date?,
+        finishedAt: Date?,
+        exitCode: Int?,
+        processType: String? = nil,
+        containerName: String? = nil,
+        containerID: String? = nil,
+        createdAt: Date? = nil,
+        restartCount: Int? = nil,
+        pid: Int? = nil,
+        restarting: Bool = false,
+        paused: Bool = false,
+        dead: Bool = false,
+        oomKilled: Bool = false,
+        stateError: String? = nil,
+        image: String? = nil,
+        builderType: String? = nil,
+        stack: String? = nil,
+        imageStage: String? = nil,
+        user: String? = nil,
+        workingDir: String? = nil,
+        command: String? = nil,
+        networkMode: String? = nil,
+        ipAddress: String? = nil,
+        exposedPorts: [String] = [],
+        publishedPorts: [String] = [],
+        logPath: String? = nil
+    ) {
+        self.identifier = identifier
+        self.running = running
+        self.status = status
+        self.startedAt = startedAt
+        self.finishedAt = finishedAt
+        self.exitCode = exitCode
+        self.processType = processType
+        self.containerName = containerName
+        self.containerID = containerID
+        self.createdAt = createdAt
+        self.restartCount = restartCount
+        self.pid = pid
+        self.restarting = restarting
+        self.paused = paused
+        self.dead = dead
+        self.oomKilled = oomKilled
+        self.stateError = stateError
+        self.image = image
+        self.builderType = builderType
+        self.stack = stack
+        self.imageStage = imageStage
+        self.user = user
+        self.workingDir = workingDir
+        self.command = command
+        self.networkMode = networkMode
+        self.ipAddress = ipAddress
+        self.exposedPorts = exposedPorts
+        self.publishedPorts = publishedPorts
+        self.logPath = logPath
+    }
 }
 
 struct AppOperationalDetails: Codable, Equatable {
@@ -158,6 +246,20 @@ struct AppOperationalDetails: Codable, Equatable {
     let portMappings: [String]
     let mounts: [AppMountInfo]
     let restartPolicy: String?
+}
+
+struct AppLetsEncryptStatus: Codable, Equatable {
+    let certificateExpiry: String
+    let timeBeforeExpiry: String
+    let timeBeforeRenewal: String
+
+    var isExpired: Bool {
+        timeBeforeExpiry.lowercased().contains("ago")
+    }
+
+    var renewalOverdue: Bool {
+        timeBeforeRenewal.lowercased().contains("ago")
+    }
 }
 
 struct MenuStatusMetrics: Equatable {

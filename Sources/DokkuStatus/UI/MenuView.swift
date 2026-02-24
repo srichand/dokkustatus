@@ -4,6 +4,10 @@ struct MenuView: View {
     @ObservedObject var store: StatusStore
     let onQuit: () -> Void
     @State private var selectedAppID: String?
+    @State private var now = Date()
+    @State private var sectionExpansionState: [String: Bool] = [:]
+    @State private var expandedProcessIDs: Set<String> = []
+    private let secondTicker = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -50,6 +54,10 @@ struct MenuView: View {
         .onChange(of: store.apps) { _, _ in
             syncSelectedApp()
         }
+        .onChange(of: selectedAppID) { _, _ in
+            expandedProcessIDs.removeAll()
+        }
+        .onReceive(secondTicker) { now = $0 }
     }
 
     private var orderedApps: [AppStatus] {
@@ -72,7 +80,7 @@ struct MenuView: View {
 
             Spacer()
 
-            Text("Last check: \(MenuBarController.relativeDateString(from: store.lastCheckedAt))")
+            Text("Last check: \(MenuBarController.relativeDateString(from: store.lastCheckedAt, relativeTo: now))")
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }
@@ -91,7 +99,7 @@ struct MenuView: View {
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
-            .frame(maxHeight: 190)
+            .frame(maxWidth: .infinity, maxHeight: 190)
         }
     }
 
@@ -120,35 +128,35 @@ struct MenuView: View {
     }
 
     private func appRowButton(_ app: AppStatus) -> some View {
-        Button {
-            selectedAppID = app.id
-        } label: {
-            HStack(alignment: .firstTextBaseline, spacing: 8) {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(app.appName)
-                        .font(.body)
-                    Text(MenuBarController.relativeDateString(from: app.checkedAt))
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
-                }
-
-                Spacer()
-
-                Text(MenuBarController.badgeTitle(for: app.state))
-                    .font(.caption)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 3)
-                    .background(MenuBarController.badgeColor(for: app.state).opacity(0.16), in: Capsule())
-                    .foregroundStyle(MenuBarController.badgeColor(for: app.state))
+        HStack(alignment: .firstTextBaseline, spacing: 8) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(app.appName)
+                    .font(.body)
+                Text(MenuBarController.relativeDateString(from: app.checkedAt, relativeTo: now))
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
             }
+
+            Spacer()
+
+            Text(MenuBarController.badgeTitle(for: app.state))
+                .font(.caption)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 3)
+                .background(MenuBarController.badgeColor(for: app.state).opacity(0.16), in: Capsule())
+                .foregroundStyle(MenuBarController.badgeColor(for: app.state))
         }
-        .buttonStyle(.plain)
+        .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.horizontal, 8)
         .padding(.vertical, 5)
         .background(
             RoundedRectangle(cornerRadius: 8)
                 .fill(selectedAppID == app.id ? Color.accentColor.opacity(0.16) : Color.clear)
         )
+        .contentShape(Rectangle())
+        .onTapGesture {
+            selectedAppID = app.id
+        }
     }
 
     private var appDetailsPanel: some View {
@@ -161,7 +169,7 @@ struct MenuView: View {
                     selectedAppDetails(selectedApp)
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
-                .frame(maxHeight: 210)
+                .frame(maxHeight: 260)
             } else {
                 Text("Select an app to view details.")
                     .font(.subheadline)
@@ -188,20 +196,63 @@ struct MenuView: View {
                     .foregroundStyle(MenuBarController.badgeColor(for: app.state))
             }
 
-            if let rawStatus = app.rawStatus, !rawStatus.isEmpty {
-                Text("Raw status: \(rawStatus)")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+            detailsSection(title: "Summary") {
+                keyValueRow(key: "Last checked", value: MenuBarController.relativeDateString(from: app.checkedAt, relativeTo: now))
+                keyValueRow(key: "Raw status", value: app.rawStatus ?? "unknown")
+                keyValueRow(
+                    key: "Processes",
+                    value: app.details.map { "\($0.processes.count) process(es)" } ?? "inspect unavailable"
+                )
+                if let errorMessage = app.errorMessage, !errorMessage.isEmpty {
+                    keyValueRow(key: "Inspect error", value: errorMessage)
+                }
+                if let letsEncrypt = app.letsEncrypt {
+                    keyValueRow(
+                        key: "TLS",
+                        value: letsEncrypt.isExpired ? "expired (\(letsEncrypt.timeBeforeExpiry))" : "valid (\(letsEncrypt.timeBeforeExpiry))"
+                    )
+                } else {
+                    keyValueRow(key: "TLS", value: "no letsencrypt data")
+                }
+            }
+
+            disclosureSection(id: "tls", title: "TLS (Let's Encrypt)", defaultExpanded: true) {
+                if let letsEncrypt = app.letsEncrypt {
+                    keyValueRow(key: "Status", value: letsEncrypt.isExpired ? "Expired" : "Valid")
+                    keyValueRow(key: "Certificate expiry", value: letsEncrypt.certificateExpiry)
+                    keyValueRow(key: "Time before expiry", value: letsEncrypt.timeBeforeExpiry)
+                    keyValueRow(key: "Time before renewal", value: letsEncrypt.timeBeforeRenewal)
+                } else {
+                    Text("No letsencrypt certificate data found for this app.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
             }
 
             if let details = app.details {
-                detailsSection(title: "Process") {
-                    ForEach(details.processes, id: \.identifier) { process in
-                        processRow(process)
+                disclosureSection(id: "health", title: "Health & Runtime", defaultExpanded: true) {
+                    keyValueRow(key: "Restart policy", value: details.restartPolicy ?? "unknown")
+                    keyValueRow(
+                        key: "Process health",
+                        value: "\(details.processes.filter(\.running).count) running / \(details.processes.count) total"
+                    )
+                    let nonZeroExits = details.processes.compactMap(\.exitCode).filter { $0 != 0 }
+                    if !nonZeroExits.isEmpty {
+                        keyValueRow(key: "Non-zero exits", value: nonZeroExits.map(String.init).joined(separator: ", "))
+                    }
+                    let runtimeFlags = processRuntimeFlags(details.processes)
+                    if !runtimeFlags.isEmpty {
+                        keyValueRow(key: "Flags", value: runtimeFlags.joined(separator: ", "))
                     }
                 }
 
-                detailsSection(title: "Networking") {
+                disclosureSection(id: "processes", title: "Processes (\(details.processes.count))", defaultExpanded: true) {
+                    ForEach(details.processes, id: \.identifier) { process in
+                        processDisclosure(process)
+                    }
+                }
+
+                disclosureSection(id: "networking", title: "Networking") {
                     keyValueRow(
                         key: "Domains",
                         value: details.domains.isEmpty ? "none" : details.domains.joined(separator: ", ")
@@ -210,9 +261,20 @@ struct MenuView: View {
                         key: "Port mapping",
                         value: details.portMappings.isEmpty ? "none" : details.portMappings.joined(separator: ", ")
                     )
+                    let networkModes = uniqueSorted(details.processes.compactMap(\.networkMode))
+                    keyValueRow(key: "Network mode", value: networkModes.isEmpty ? "unknown" : networkModes.joined(separator: ", "))
+
+                    let containerIPs = uniqueSorted(details.processes.compactMap(\.ipAddress))
+                    keyValueRow(key: "Container IPs", value: containerIPs.isEmpty ? "none" : containerIPs.joined(separator: ", "))
+
+                    let exposedPorts = uniqueSorted(details.processes.flatMap(\.exposedPorts))
+                    keyValueRow(key: "Exposed ports", value: exposedPorts.isEmpty ? "none" : exposedPorts.joined(separator: ", "))
+
+                    let publishedPorts = uniqueSorted(details.processes.flatMap(\.publishedPorts))
+                    keyValueRow(key: "Published ports", value: publishedPorts.isEmpty ? "none" : publishedPorts.joined(separator: ", "))
                 }
 
-                detailsSection(title: "Storage") {
+                disclosureSection(id: "storage", title: "Storage") {
                     if details.mounts.isEmpty {
                         keyValueRow(key: "Mounts", value: "none")
                     } else {
@@ -226,11 +288,21 @@ struct MenuView: View {
                     }
                 }
 
-                detailsSection(title: "Runtime Policy") {
-                    keyValueRow(key: "Restart", value: details.restartPolicy ?? "unknown")
+                disclosureSection(id: "deployment", title: "Deployment & Build") {
+                    let images = uniqueSorted(details.processes.compactMap(\.image))
+                    keyValueRow(key: "Image", value: images.isEmpty ? "unknown" : images.joined(separator: ", "))
+
+                    let builders = uniqueSorted(details.processes.compactMap(\.builderType))
+                    keyValueRow(key: "Builder", value: builders.isEmpty ? "unknown" : builders.joined(separator: ", "))
+
+                    let stacks = uniqueSorted(details.processes.compactMap(\.stack))
+                    keyValueRow(key: "Stack", value: stacks.isEmpty ? "unknown" : stacks.joined(separator: ", "))
+
+                    let imageStages = uniqueSorted(details.processes.compactMap(\.imageStage))
+                    keyValueRow(key: "Image stage", value: imageStages.isEmpty ? "unknown" : imageStages.joined(separator: ", "))
                 }
             } else {
-                Text("No detailed process data available.")
+                Text("No inspect JSON details are available for this app.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -250,20 +322,180 @@ struct MenuView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
+    private func disclosureSection<Content: View>(
+        id: String,
+        title: String,
+        defaultExpanded: Bool = false,
+        @ViewBuilder content: @escaping () -> Content
+    ) -> some View {
+        let isExpanded = sectionExpansionState[id] ?? defaultExpanded
+
+        return VStack(alignment: .leading, spacing: 2) {
+            Button {
+                sectionExpansionState[id] = !isExpanded
+            } label: {
+                HStack(spacing: 6) {
+                    Image(systemName: isExpanded ? "chevron.down" : "chevron.right")
+                        .font(.caption2.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                    Text(title)
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                    Spacer(minLength: 0)
+                }
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+
+            if isExpanded {
+                VStack(alignment: .leading, spacing: 4) {
+                    content()
+                        .font(.caption)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.top, 2)
+                .padding(.leading, 14)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private func processDisclosure(_ process: AppProcessInfo) -> some View {
+        let isExpanded = expandedProcessIDs.contains(process.identifier)
+
+        return VStack(alignment: .leading, spacing: 2) {
+            Button {
+                if isExpanded {
+                    expandedProcessIDs.remove(process.identifier)
+                } else {
+                    expandedProcessIDs.insert(process.identifier)
+                }
+            } label: {
+                HStack(alignment: .firstTextBaseline, spacing: 6) {
+                    Image(systemName: isExpanded ? "chevron.down" : "chevron.right")
+                        .font(.caption2.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                    Text(process.identifier)
+                        .font(.caption.weight(.semibold))
+                    Spacer()
+                    Text(process.status ?? (process.running ? "running" : "not running"))
+                        .font(.caption2)
+                        .foregroundStyle(process.running ? .green : .secondary)
+                }
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+
+            if isExpanded {
+                processRow(process)
+                    .padding(.leading, 14)
+            }
+        }
+        .padding(.vertical, 2)
+    }
+
     private func processRow(_ process: AppProcessInfo) -> some View {
         VStack(alignment: .leading, spacing: 2) {
             keyValueRow(key: "Identifier", value: process.identifier)
+            if let processType = process.processType {
+                keyValueRow(key: "Process type", value: processType)
+            }
             keyValueRow(key: "Status", value: process.status ?? (process.running ? "running" : "not running"))
             if let startedAt = process.startedAt {
-                keyValueRow(key: "Started", value: MenuBarController.relativeDateString(from: startedAt))
+                keyValueRow(key: "Started", value: MenuBarController.relativeDateString(from: startedAt, relativeTo: now))
             }
             if !process.running, let finishedAt = process.finishedAt {
-                keyValueRow(key: "Finished", value: MenuBarController.relativeDateString(from: finishedAt))
+                keyValueRow(key: "Finished", value: MenuBarController.relativeDateString(from: finishedAt, relativeTo: now))
             }
             if !process.running, let exitCode = process.exitCode {
                 keyValueRow(key: "Exit code", value: "\(exitCode)")
             }
+            if let containerName = process.containerName {
+                keyValueRow(key: "Container", value: containerName)
+            }
+            if let containerID = process.containerID {
+                keyValueRow(key: "Container ID", value: containerID)
+            }
+            if let createdAt = process.createdAt {
+                keyValueRow(key: "Created", value: MenuBarController.relativeDateString(from: createdAt, relativeTo: now))
+            }
+            if let restartCount = process.restartCount {
+                keyValueRow(key: "Restart count", value: "\(restartCount)")
+            }
+            if let pid = process.pid, pid > 0 {
+                keyValueRow(key: "PID", value: "\(pid)")
+            }
+            let flags = processFlags(for: process)
+            if !flags.isEmpty {
+                keyValueRow(key: "Flags", value: flags.joined(separator: ", "))
+            }
+            if let stateError = process.stateError {
+                keyValueRow(key: "State error", value: stateError)
+            }
+            if let image = process.image {
+                keyValueRow(key: "Image", value: image)
+            }
+            if let builderType = process.builderType {
+                keyValueRow(key: "Builder", value: builderType)
+            }
+            if let stack = process.stack {
+                keyValueRow(key: "Stack", value: stack)
+            }
+            if let imageStage = process.imageStage {
+                keyValueRow(key: "Image stage", value: imageStage)
+            }
+            if let user = process.user {
+                keyValueRow(key: "User", value: user)
+            }
+            if let workingDir = process.workingDir {
+                keyValueRow(key: "Workdir", value: workingDir)
+            }
+            if let command = process.command {
+                keyValueRow(key: "Command", value: command)
+            }
+            if let networkMode = process.networkMode {
+                keyValueRow(key: "Network mode", value: networkMode)
+            }
+            if let ipAddress = process.ipAddress {
+                keyValueRow(key: "IP address", value: ipAddress)
+            }
+            if !process.exposedPorts.isEmpty {
+                keyValueRow(key: "Exposed ports", value: process.exposedPorts.joined(separator: ", "))
+            }
+            if !process.publishedPorts.isEmpty {
+                keyValueRow(key: "Published ports", value: process.publishedPorts.joined(separator: ", "))
+            }
+            if let logPath = process.logPath {
+                keyValueRow(key: "Log path", value: logPath)
+            }
         }
+    }
+
+    private func processFlags(for process: AppProcessInfo) -> [String] {
+        var flags: [String] = []
+        if process.restarting {
+            flags.append("restarting")
+        }
+        if process.paused {
+            flags.append("paused")
+        }
+        if process.dead {
+            flags.append("dead")
+        }
+        if process.oomKilled {
+            flags.append("oom-killed")
+        }
+
+        return flags
+    }
+
+    private func processRuntimeFlags(_ processes: [AppProcessInfo]) -> [String] {
+        uniqueSorted(processes.flatMap(processFlags(for:)))
+    }
+
+    private func uniqueSorted(_ values: [String]) -> [String] {
+        Array(Set(values.map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }.filter { !$0.isEmpty }))
+            .sorted { $0.localizedCaseInsensitiveCompare($1) == .orderedAscending }
     }
 
     private func keyValueRow(key: String, value: String) -> some View {

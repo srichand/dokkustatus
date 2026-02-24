@@ -51,12 +51,12 @@ enum MenuBarController {
         }
     }
 
-    static func relativeDateString(from date: Date?) -> String {
+    static func relativeDateString(from date: Date?, relativeTo referenceDate: Date = Date()) -> String {
         guard let date else {
             return "Never"
         }
 
-        return relativeFormatter.localizedString(for: date, relativeTo: Date())
+        return relativeFormatter.localizedString(for: date, relativeTo: referenceDate)
     }
 
     static func menuBarCountText(metrics: MenuStatusMetrics) -> String {
