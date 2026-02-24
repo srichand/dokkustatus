@@ -1,0 +1,298 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		1A2B3C4D5E6F000000000101 /* MainApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A2B3C4D5E6F000000000011 /* MainApp.swift */; };
+		1A2B3C4D5E6F000000000102 /* MenuBarController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A2B3C4D5E6F000000000012 /* MenuBarController.swift */; };
+		1A2B3C4D5E6F000000000103 /* DokkuClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A2B3C4D5E6F000000000013 /* DokkuClient.swift */; };
+		1A2B3C4D5E6F000000000104 /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A2B3C4D5E6F000000000014 /* Models.swift */; };
+		1A2B3C4D5E6F000000000105 /* LiveDokkuClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A2B3C4D5E6F000000000015 /* LiveDokkuClient.swift */; };
+		1A2B3C4D5E6F000000000106 /* SSHProcessRunner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A2B3C4D5E6F000000000016 /* SSHProcessRunner.swift */; };
+		1A2B3C4D5E6F000000000107 /* StatusStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A2B3C4D5E6F000000000017 /* StatusStore.swift */; };
+		1A2B3C4D5E6F000000000108 /* MenuView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A2B3C4D5E6F000000000018 /* MenuView.swift */; };
+		1A2B3C4D5E6F000000000109 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A2B3C4D5E6F000000000019 /* SettingsView.swift */; };
+		1A2B3C4D5E6F00000000010A /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 1A2B3C4D5E6F00000000001A /* Assets.xcassets */; };
+		1A2B3C4D5E6F00000000010B /* SSHConfigDefaultProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A2B3C4D5E6F00000000001B /* SSHConfigDefaultProvider.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		1A2B3C4D5E6F000000000010 /* DokkuStatus.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = DokkuStatus.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		1A2B3C4D5E6F000000000011 /* MainApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainApp.swift; sourceTree = "<group>"; };
+		1A2B3C4D5E6F000000000012 /* MenuBarController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarController.swift; sourceTree = "<group>"; };
+		1A2B3C4D5E6F000000000013 /* DokkuClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DokkuClient.swift; sourceTree = "<group>"; };
+		1A2B3C4D5E6F000000000014 /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
+		1A2B3C4D5E6F000000000015 /* LiveDokkuClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveDokkuClient.swift; sourceTree = "<group>"; };
+		1A2B3C4D5E6F000000000016 /* SSHProcessRunner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SSHProcessRunner.swift; sourceTree = "<group>"; };
+		1A2B3C4D5E6F000000000017 /* StatusStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusStore.swift; sourceTree = "<group>"; };
+		1A2B3C4D5E6F000000000018 /* MenuView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuView.swift; sourceTree = "<group>"; };
+		1A2B3C4D5E6F000000000019 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		1A2B3C4D5E6F00000000001A /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		1A2B3C4D5E6F00000000001B /* SSHConfigDefaultProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SSHConfigDefaultProvider.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		1A2B3C4D5E6F000000000203 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		1A2B3C4D5E6F000000000002 = {
+			isa = PBXGroup;
+			children = (
+				1A2B3C4D5E6F000000000004 /* App */,
+				1A2B3C4D5E6F000000000005 /* Domain */,
+				1A2B3C4D5E6F000000000006 /* Infra */,
+				1A2B3C4D5E6F000000000007 /* State */,
+				1A2B3C4D5E6F000000000008 /* UI */,
+				1A2B3C4D5E6F000000000009 /* Resources */,
+				1A2B3C4D5E6F000000000003 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		1A2B3C4D5E6F000000000003 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				1A2B3C4D5E6F000000000010 /* DokkuStatus.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		1A2B3C4D5E6F000000000004 /* App */ = {
+			isa = PBXGroup;
+			children = (
+				1A2B3C4D5E6F000000000011 /* MainApp.swift */,
+				1A2B3C4D5E6F000000000012 /* MenuBarController.swift */,
+			);
+			path = Sources/DokkuStatus/App;
+			sourceTree = "<group>";
+		};
+		1A2B3C4D5E6F000000000005 /* Domain */ = {
+			isa = PBXGroup;
+			children = (
+				1A2B3C4D5E6F000000000013 /* DokkuClient.swift */,
+				1A2B3C4D5E6F000000000014 /* Models.swift */,
+			);
+			path = Sources/DokkuStatus/Domain;
+			sourceTree = "<group>";
+		};
+		1A2B3C4D5E6F000000000006 /* Infra */ = {
+			isa = PBXGroup;
+			children = (
+				1A2B3C4D5E6F000000000015 /* LiveDokkuClient.swift */,
+				1A2B3C4D5E6F000000000016 /* SSHProcessRunner.swift */,
+				1A2B3C4D5E6F00000000001B /* SSHConfigDefaultProvider.swift */,
+			);
+			path = Sources/DokkuStatus/Infra;
+			sourceTree = "<group>";
+		};
+		1A2B3C4D5E6F000000000007 /* State */ = {
+			isa = PBXGroup;
+			children = (
+				1A2B3C4D5E6F000000000017 /* StatusStore.swift */,
+			);
+			path = Sources/DokkuStatus/State;
+			sourceTree = "<group>";
+		};
+		1A2B3C4D5E6F000000000008 /* UI */ = {
+			isa = PBXGroup;
+			children = (
+				1A2B3C4D5E6F000000000018 /* MenuView.swift */,
+				1A2B3C4D5E6F000000000019 /* SettingsView.swift */,
+			);
+			path = Sources/DokkuStatus/UI;
+			sourceTree = "<group>";
+		};
+		1A2B3C4D5E6F000000000009 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				1A2B3C4D5E6F00000000001A /* Assets.xcassets */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		1A2B3C4D5E6F000000000201 /* DokkuStatus */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 1A2B3C4D5E6F000000000205 /* Build configuration list for PBXNativeTarget "DokkuStatus" */;
+			buildPhases = (
+				1A2B3C4D5E6F000000000202 /* Sources */,
+				1A2B3C4D5E6F000000000203 /* Frameworks */,
+				1A2B3C4D5E6F000000000204 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = DokkuStatus;
+			productName = DokkuStatus;
+			productReference = 1A2B3C4D5E6F000000000010 /* DokkuStatus.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		1A2B3C4D5E6F000000000001 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				LastSwiftUpdateCheck = 2620;
+				LastUpgradeCheck = 2620;
+				TargetAttributes = {
+					1A2B3C4D5E6F000000000201 = {
+						CreatedOnToolsVersion = 26.2;
+					};
+				};
+			};
+			buildConfigurationList = 1A2B3C4D5E6F000000000206 /* Build configuration list for PBXProject "DokkuStatus" */;
+			compatibilityVersion = "Xcode 15.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = 1A2B3C4D5E6F000000000002;
+			productRefGroup = 1A2B3C4D5E6F000000000003 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				1A2B3C4D5E6F000000000201 /* DokkuStatus */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		1A2B3C4D5E6F000000000204 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				1A2B3C4D5E6F00000000010A /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		1A2B3C4D5E6F000000000202 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				1A2B3C4D5E6F000000000101 /* MainApp.swift in Sources */,
+				1A2B3C4D5E6F000000000102 /* MenuBarController.swift in Sources */,
+				1A2B3C4D5E6F000000000103 /* DokkuClient.swift in Sources */,
+				1A2B3C4D5E6F000000000104 /* Models.swift in Sources */,
+				1A2B3C4D5E6F000000000105 /* LiveDokkuClient.swift in Sources */,
+				1A2B3C4D5E6F000000000106 /* SSHProcessRunner.swift in Sources */,
+				1A2B3C4D5E6F000000000107 /* StatusStore.swift in Sources */,
+				1A2B3C4D5E6F000000000108 /* MenuView.swift in Sources */,
+				1A2B3C4D5E6F000000000109 /* SettingsView.swift in Sources */,
+				1A2B3C4D5E6F00000000010B /* SSHConfigDefaultProvider.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		1A2B3C4D5E6F000000000207 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_ENABLE_MODULES = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				SDKROOT = macosx;
+				SWIFT_VERSION = 6.0;
+			};
+			name = Debug;
+		};
+		1A2B3C4D5E6F000000000208 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_ENABLE_MODULES = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				SDKROOT = macosx;
+				SWIFT_VERSION = 6.0;
+			};
+			name = Release;
+		};
+		1A2B3C4D5E6F000000000209 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_HARDENED_RUNTIME = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = DokkuStatus;
+				INFOPLIST_KEY_LSUIElement = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MARKETING_VERSION = 0.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.srichand.DokkuStatus;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 6.0;
+			};
+			name = Debug;
+		};
+		1A2B3C4D5E6F00000000020A /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_HARDENED_RUNTIME = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = DokkuStatus;
+				INFOPLIST_KEY_LSUIElement = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MARKETING_VERSION = 0.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.srichand.DokkuStatus;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 6.0;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		1A2B3C4D5E6F000000000205 /* Build configuration list for PBXNativeTarget "DokkuStatus" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				1A2B3C4D5E6F000000000209 /* Debug */,
+				1A2B3C4D5E6F00000000020A /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		1A2B3C4D5E6F000000000206 /* Build configuration list for PBXProject "DokkuStatus" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				1A2B3C4D5E6F000000000207 /* Debug */,
+				1A2B3C4D5E6F000000000208 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 1A2B3C4D5E6F000000000001 /* Project object */;
+}
