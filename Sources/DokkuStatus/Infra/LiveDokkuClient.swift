@@ -18,6 +18,8 @@ enum LiveDokkuClientError: LocalizedError {
 final class LiveDokkuClient: DokkuClient, @unchecked Sendable {
     private let runner: SSHRunning
     private let logger = Logger(subsystem: "DokkuStatus", category: "dokku")
+    private static let letsEncryptTimeZoneProbeCommand =
+        "printf '%s\\t%s\\t%s\\n' \"$(cat /etc/timezone 2>/dev/null || true)\" \"$(date +%Z)\" \"$(date +%z)\""
 
     init(runner: SSHRunning = SSHProcessRunner()) {
         self.runner = runner
@@ -91,8 +93,24 @@ final class LiveDokkuClient: DokkuClient, @unchecked Sendable {
             }
     }
 
-    static func parseLetsEncryptList(_ output: String) -> [String: AppLetsEncryptStatus] {
+    static func parseLetsEncryptList(
+        _ output: String,
+        remoteTimeZoneIdentifier: String? = nil,
+        remoteTimeZoneAbbreviation: String? = nil,
+        remoteTimeZoneOffset: String? = nil
+    ) -> [String: AppLetsEncryptStatus] {
         var statusesByApp: [String: AppLetsEncryptStatus] = [:]
+        let parsedRemoteTimeZone = RemoteTimeZoneContext(
+            identifier: normalizedString(remoteTimeZoneIdentifier),
+            abbreviation: normalizedString(remoteTimeZoneAbbreviation),
+            offset: normalizedUTCOffset(remoteTimeZoneOffset)
+        )
+        let remoteTimeZone: RemoteTimeZoneContext? =
+            (parsedRemoteTimeZone.identifier != nil ||
+             parsedRemoteTimeZone.abbreviation != nil ||
+             parsedRemoteTimeZone.offset != nil)
+            ? parsedRemoteTimeZone
+            : nil
 
         for rawLine in output.split(whereSeparator: \.isNewline) {
             let line = rawLine.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -115,8 +133,16 @@ final class LiveDokkuClient: DokkuClient, @unchecked Sendable {
                 continue
             }
 
+            let certificateExpiry = columns[1]
             statusesByApp[appName.lowercased()] = AppLetsEncryptStatus(
-                certificateExpiry: columns[1],
+                certificateExpiry: certificateExpiry,
+                certificateExpiryDate: parseLetsEncryptExpiryTimestamp(
+                    certificateExpiry,
+                    remoteTimeZone: remoteTimeZone
+                ),
+                serverTimeZoneIdentifier: remoteTimeZone?.identifier,
+                serverTimeZoneAbbreviation: remoteTimeZone?.abbreviation,
+                serverTimeZoneOffset: remoteTimeZone?.offset,
                 timeBeforeExpiry: columns[2],
                 timeBeforeRenewal: columns[3]
             )
@@ -127,6 +153,7 @@ final class LiveDokkuClient: DokkuClient, @unchecked Sendable {
 
     private func fetchLetsEncryptStatusByApp(target: String, port: Int) async -> [String: AppLetsEncryptStatus] {
         do {
+            async let remoteTimeZone = fetchRemoteTimeZoneContext(target: target, port: port)
             let certResult = try await runner.run(
                 target: target,
                 port: port,
@@ -134,10 +161,32 @@ final class LiveDokkuClient: DokkuClient, @unchecked Sendable {
                 timeout: 15
             )
 
-            return Self.parseLetsEncryptList(certResult.stdout)
+            let resolvedTimeZone = await remoteTimeZone
+            return Self.parseLetsEncryptList(
+                certResult.stdout,
+                remoteTimeZoneIdentifier: resolvedTimeZone?.identifier,
+                remoteTimeZoneAbbreviation: resolvedTimeZone?.abbreviation,
+                remoteTimeZoneOffset: resolvedTimeZone?.offset
+            )
         } catch {
             logger.info("Skipping letsencrypt details: \(error.localizedDescription, privacy: .public)")
             return [:]
+        }
+    }
+
+    private func fetchRemoteTimeZoneContext(target: String, port: Int) async -> RemoteTimeZoneContext? {
+        do {
+            let timeZoneResult = try await runner.run(
+                target: target,
+                port: port,
+                remoteCommand: Self.letsEncryptTimeZoneProbeCommand,
+                timeout: 10
+            )
+
+            return Self.parseRemoteTimeZoneContext(timeZoneResult.stdout)
+        } catch {
+            logger.info("Unable to resolve remote timezone: \(error.localizedDescription, privacy: .public)")
+            return nil
         }
     }
 
@@ -294,6 +343,68 @@ final class LiveDokkuClient: DokkuClient, @unchecked Sendable {
             .split(separator: "\t")
             .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
             .filter { !$0.isEmpty }
+    }
+
+    private static func parseRemoteTimeZoneContext(_ output: String) -> RemoteTimeZoneContext? {
+        guard let firstLine = output.split(whereSeparator: \.isNewline).first else {
+            return nil
+        }
+
+        let rawLine = String(firstLine).trimmingCharacters(in: .newlines)
+        guard !rawLine.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        else {
+            return nil
+        }
+
+        let columns = rawLine
+            .split(separator: "\t", omittingEmptySubsequences: false)
+            .map { String($0) }
+
+        let identifier = columns.indices.contains(0) ? normalizedString(columns[0]) : nil
+        let abbreviation = columns.indices.contains(1) ? normalizedString(columns[1]) : nil
+        let offset = columns.indices.contains(2) ? normalizedUTCOffset(columns[2]) : nil
+
+        if identifier == nil, abbreviation == nil, offset == nil {
+            return nil
+        }
+
+        return RemoteTimeZoneContext(identifier: identifier, abbreviation: abbreviation, offset: offset)
+    }
+
+    private static func parseLetsEncryptExpiryTimestamp(_ value: String, remoteTimeZone: RemoteTimeZoneContext?) -> Date? {
+        guard
+            let normalizedValue = normalizedString(value),
+            let remoteTimeZone = remoteTimeZone?.timeZone
+        else {
+            return nil
+        }
+
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
+        formatter.timeZone = remoteTimeZone
+        return formatter.date(from: normalizedValue)
+    }
+
+    private static func normalizedUTCOffset(_ value: String?) -> String? {
+        guard let value = normalizedString(value) else {
+            return nil
+        }
+
+        let normalized = value.replacingOccurrences(of: ":", with: "")
+        guard normalized.count == 5, normalized.first == "+" || normalized.first == "-" else {
+            return nil
+        }
+
+        let sign = normalized.prefix(1)
+        let digits = normalized.dropFirst()
+        guard digits.count == 4 else {
+            return nil
+        }
+
+        let hours = digits.prefix(2)
+        let minutes = digits.suffix(2)
+        return "\(sign)\(hours)\(minutes)"
     }
 
     private static func uniquePreservingOrder(_ values: [String]) -> [String] {
@@ -570,6 +681,52 @@ final class LiveDokkuClient: DokkuClient, @unchecked Sendable {
     private static func shellEscape(_ value: String) -> String {
         let escaped = value.replacingOccurrences(of: "'", with: "'\\''")
         return "'\(escaped)'"
+    }
+}
+
+private struct RemoteTimeZoneContext {
+    let identifier: String?
+    let abbreviation: String?
+    let offset: String?
+
+    var timeZone: TimeZone? {
+        if let identifier, let timeZone = TimeZone(identifier: identifier) {
+            return timeZone
+        }
+
+        if let abbreviation, let timeZone = TimeZone(abbreviation: abbreviation) {
+            return timeZone
+        }
+
+        guard let offset, let seconds = Self.secondsFromGMT(offset: offset) else {
+            return nil
+        }
+
+        return TimeZone(secondsFromGMT: seconds)
+    }
+
+    private static func secondsFromGMT(offset: String) -> Int? {
+        let normalized = offset.replacingOccurrences(of: ":", with: "")
+        guard
+            normalized.count == 5,
+            let signCharacter = normalized.first,
+            let value = Int(normalized.dropFirst())
+        else {
+            return nil
+        }
+
+        let hours = value / 100
+        let minutes = value % 100
+        let seconds = (hours * 3600) + (minutes * 60)
+
+        switch signCharacter {
+        case "+":
+            return seconds
+        case "-":
+            return -seconds
+        default:
+            return nil
+        }
     }
 }
 

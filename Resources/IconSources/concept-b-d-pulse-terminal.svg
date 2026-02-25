@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+concept: B - D + Terminal Pulse (deep slate + mint)
+palette: bg #0F172A, monogram #D1FAE5, pulse-accent #22D3EE
+date: 2026-02-25
+intended-export: 1024 master
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-label="DokkuStatus icon concept B">
+  <rect x="0" y="0" width="1024" height="1024" rx="220" ry="220" fill="#0F172A"/>
+
+  <path
+    id="d-monogram"
+    d="M350 292 H510 C648 292 716 382 716 512 C716 642 648 732 510 732 H350 Z"
+    fill="#D1FAE5"
+  />
+  <path
+    id="d-counter"
+    d="M434 360 H500 C596 360 646 421 646 512 C646 603 596 664 500 664 H434 Z"
+    fill="#0F172A"
+  />
+
+  <path
+    id="terminal-prompt-baseline"
+    d="M440 534 H474"
+    fill="none"
+    stroke="#22D3EE"
+    stroke-width="6"
+    stroke-linecap="round"
+    opacity="0.55"
+  />
+  <path
+    id="pulse-accent"
+    d="M440 512 H474 L492 498 L510 512 H528 L552 474 L578 548 L606 486 L632 512 H642"
+    fill="none"
+    stroke="#22D3EE"
+    stroke-width="18"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+</svg>

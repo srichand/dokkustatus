@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+concept: C - D + Shield Pulse (graphite + green)
+palette: bg #1F2937, monogram #F9FAFB, shield #F59E0B, pulse #34D399
+date: 2026-02-25
+intended-export: 1024 master
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-label="DokkuStatus icon concept C">
+  <rect x="0" y="0" width="1024" height="1024" rx="220" ry="220" fill="#1F2937"/>
+
+  <path
+    id="d-monogram"
+    d="M350 292 H510 C648 292 716 382 716 512 C716 642 648 732 510 732 H350 Z"
+    fill="#F9FAFB"
+  />
+  <path
+    id="d-counter"
+    d="M434 360 H500 C596 360 646 421 646 512 C646 603 596 664 500 664 H434 Z"
+    fill="#1F2937"
+  />
+
+  <path
+    id="shield-outline"
+    d="M542 420 C584 420 614 440 614 468 V528 C614 582 580 626 542 652 C504 626 470 582 470 528 V468 C470 440 500 420 542 420 Z"
+    fill="none"
+    stroke="#F59E0B"
+    stroke-width="10"
+    stroke-linejoin="round"
+    opacity="0.45"
+  />
+  <path
+    id="pulse-accent"
+    d="M444 512 H490 L516 482 L542 548 L572 474 L600 512 H640"
+    fill="none"
+    stroke="#34D399"
+    stroke-width="18"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+</svg>

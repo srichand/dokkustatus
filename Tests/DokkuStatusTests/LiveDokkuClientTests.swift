@@ -36,6 +36,7 @@ final class LiveDokkuClientTests: XCTestCase {
 
         let appGamma = try XCTUnwrap(parsed["app-gamma"])
         XCTAssertEqual(appGamma.certificateExpiry, "2025-10-07 22:19:26")
+        XCTAssertNil(appGamma.certificateExpiryDate)
         XCTAssertEqual(appGamma.timeBeforeExpiry, "139d, 18h, 56m, 40s ago")
         XCTAssertEqual(appGamma.timeBeforeRenewal, "169d, 18h, 56m, 40s ago")
         XCTAssertTrue(appGamma.isExpired)
@@ -45,6 +46,30 @@ final class LiveDokkuClientTests: XCTestCase {
         XCTAssertEqual(appBeta.timeBeforeExpiry, "82d, 12h, 10m, 1s")
         XCTAssertFalse(appBeta.isExpired)
         XCTAssertFalse(appBeta.renewalOverdue)
+    }
+
+    func testParseLetsEncryptListParsesExpiryWithRemoteTimezone() throws {
+        let output = try fixture(named: "letsencrypt-list.txt")
+        let parsed = LiveDokkuClient.parseLetsEncryptList(
+            output,
+            remoteTimeZoneIdentifier: "America/New_York",
+            remoteTimeZoneAbbreviation: "EST",
+            remoteTimeZoneOffset: "-0500"
+        )
+
+        let appBeta = try XCTUnwrap(parsed["app-beta"])
+        let expiryDate = try XCTUnwrap(appBeta.certificateExpiryDate)
+        let remoteTimeZone = try XCTUnwrap(appBeta.serverTimeZone)
+
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = remoteTimeZone
+        formatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
+
+        XCTAssertEqual(formatter.string(from: expiryDate), "2026-05-18 05:26:06")
+        XCTAssertEqual(appBeta.serverTimeZoneIdentifier, "America/New_York")
+        XCTAssertEqual(appBeta.serverTimeZoneAbbreviation, "EST")
+        XCTAssertEqual(appBeta.serverTimeZoneOffset, "-0500")
     }
 
     func testParseInspectStatusRunningSingleContainer() throws {
@@ -296,6 +321,9 @@ final class LiveDokkuClientTests: XCTestCase {
                         exitCode: 0
                     )
                 ),
+                "printf '%s\\t%s\\t%s\\n' \"$(cat /etc/timezone 2>/dev/null || true)\" \"$(date +%Z)\" \"$(date +%z)\"": .success(
+                    SSHCommandResult(stdout: "America/New_York\tEST\t-0500\n", stderr: "", exitCode: 0)
+                ),
                 "dokku ps:inspect 'app-one'": .success(
                     SSHCommandResult(stdout: "[{\"State\":{\"Running\":true,\"Status\":\"running\"}}]", stderr: "", exitCode: 0)
                 )
@@ -310,6 +338,10 @@ final class LiveDokkuClientTests: XCTestCase {
         let cert = try XCTUnwrap(status.letsEncrypt)
 
         XCTAssertEqual(cert.certificateExpiry, "2026-05-18 05:26:06")
+        XCTAssertNotNil(cert.certificateExpiryDate)
+        XCTAssertEqual(cert.serverTimeZoneIdentifier, "America/New_York")
+        XCTAssertEqual(cert.serverTimeZoneAbbreviation, "EST")
+        XCTAssertEqual(cert.serverTimeZoneOffset, "-0500")
         XCTAssertEqual(cert.timeBeforeExpiry, "82d, 12h, 10m, 1s")
         XCTAssertEqual(cert.timeBeforeRenewal, "52d, 12h, 10m, 1s")
         XCTAssertFalse(cert.isExpired)

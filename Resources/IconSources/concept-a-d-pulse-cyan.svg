@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+concept: A - D + Pulse (continuity cyan)
+palette: bg #1F9FC7, monogram #F2F4F7, pulse-cut #1F9FC7, pulse-highlight #D8EEF6
+date: 2026-02-25
+intended-export: 1024 master
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-label="DokkuStatus icon concept A">
+  <rect x="0" y="0" width="1024" height="1024" rx="220" ry="220" fill="#1F9FC7"/>
+
+  <path
+    id="d-monogram"
+    d="M350 292 H510 C648 292 716 382 716 512 C716 642 648 732 510 732 H350 Z"
+    fill="#F2F4F7"
+  />
+  <path
+    id="d-counter"
+    d="M434 360 H500 C596 360 646 421 646 512 C646 603 596 664 500 664 H434 Z"
+    fill="#1F9FC7"
+  />
+
+  <path
+    id="pulse-cut"
+    d="M446 512 H500 L528 480 L554 548 L586 468 L614 512 H640"
+    fill="none"
+    stroke="#1F9FC7"
+    stroke-width="26"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+  <path
+    id="pulse-highlight"
+    d="M446 512 H500 L528 480 L554 548 L586 468 L614 512 H640"
+    fill="none"
+    stroke="#D8EEF6"
+    stroke-width="8"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+</svg>

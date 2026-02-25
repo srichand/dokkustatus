@@ -1,3 +1,4 @@
+import Foundation
 import SwiftUI
 
 struct MenuView: View {
@@ -219,7 +220,28 @@ struct MenuView: View {
             disclosureSection(id: "tls", title: "TLS (Let's Encrypt)", defaultExpanded: true) {
                 if let letsEncrypt = app.letsEncrypt {
                     keyValueRow(key: "Status", value: letsEncrypt.isExpired ? "Expired" : "Valid")
-                    keyValueRow(key: "Certificate expiry", value: letsEncrypt.certificateExpiry)
+                    if let certificateExpiryDate = letsEncrypt.certificateExpiryDate {
+                        if let serverTimeZone = letsEncrypt.serverTimeZone {
+                            keyValueRow(
+                                key: "Certificate expiry (server)",
+                                value: formattedDateTime(certificateExpiryDate, in: serverTimeZone)
+                            )
+                        } else {
+                            keyValueRow(
+                                key: "Certificate expiry",
+                                value: formattedDateTime(certificateExpiryDate, in: TimeZone.autoupdatingCurrent)
+                            )
+                        }
+
+                        keyValueRow(
+                            key: "Certificate expiry (you)",
+                            value: formattedDateTime(certificateExpiryDate, in: TimeZone.autoupdatingCurrent)
+                        )
+                    } else {
+                        keyValueRow(key: "Certificate expiry", value: letsEncrypt.certificateExpiry)
+                    }
+                    keyValueRow(key: "Server timezone", value: formattedServerTimeZone(letsEncrypt))
+                    keyValueRow(key: "Your timezone", value: formattedTimeZone(TimeZone.autoupdatingCurrent))
                     keyValueRow(key: "Time before expiry", value: letsEncrypt.timeBeforeExpiry)
                     keyValueRow(key: "Time before renewal", value: letsEncrypt.timeBeforeRenewal)
                 } else {
@@ -507,6 +529,70 @@ struct MenuView: View {
                 .multilineTextAlignment(.trailing)
                 .textSelection(.enabled)
         }
+    }
+
+    private func formattedDateTime(_ date: Date, in timeZone: TimeZone) -> String {
+        let formatter = DateFormatter()
+        formatter.locale = Locale.autoupdatingCurrent
+        formatter.timeZone = timeZone
+        formatter.dateFormat = "yyyy-MM-dd HH:mm:ss zzz (ZZZZZ)"
+        return formatter.string(from: date)
+    }
+
+    private func formattedServerTimeZone(_ status: AppLetsEncryptStatus) -> String {
+        if let serverTimeZone = status.serverTimeZone {
+            return formattedTimeZone(serverTimeZone)
+        }
+
+        if
+            let abbreviation = status.serverTimeZoneAbbreviation?.trimmingCharacters(in: .whitespacesAndNewlines),
+            !abbreviation.isEmpty
+        {
+            if
+                let offset = status.serverTimeZoneOffset?.trimmingCharacters(in: .whitespacesAndNewlines),
+                !offset.isEmpty
+            {
+                return "\(abbreviation) (\(formattedUTCOffset(offset)))"
+            }
+
+            return abbreviation
+        }
+
+        return "unknown"
+    }
+
+    private func formattedTimeZone(_ timeZone: TimeZone) -> String {
+        let identifier = timeZone.identifier
+        let abbreviation = timeZone.abbreviation() ?? "UTC"
+        let offset = formattedUTCOffset(timeZone.secondsFromGMT())
+        return "\(identifier) (\(abbreviation), \(offset))"
+    }
+
+    private func formattedUTCOffset(_ offset: String) -> String {
+        let normalized = offset.replacingOccurrences(of: ":", with: "")
+        guard
+            normalized.count == 5,
+            let signCharacter = normalized.first
+        else {
+            return offset
+        }
+
+        let digits = normalized.dropFirst()
+        guard digits.count == 4 else {
+            return offset
+        }
+
+        let hours = digits.prefix(2)
+        let minutes = digits.suffix(2)
+        return "UTC\(signCharacter)\(hours):\(minutes)"
+    }
+
+    private func formattedUTCOffset(_ seconds: Int) -> String {
+        let sign = seconds >= 0 ? "+" : "-"
+        let absoluteSeconds = abs(seconds)
+        let hours = absoluteSeconds / 3600
+        let minutes = (absoluteSeconds % 3600) / 60
+        return String(format: "UTC%@%02d:%02d", sign, hours, minutes)
     }
 
     private func syncSelectedApp() {
