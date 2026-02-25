@@ -20,6 +20,7 @@ final class LiveDokkuClient: DokkuClient, @unchecked Sendable {
     private let logger = Logger(subsystem: "DokkuStatus", category: "dokku")
     private static let letsEncryptTimeZoneProbeCommand =
         "printf '%s\\t%s\\t%s\\n' \"$(cat /etc/timezone 2>/dev/null || true)\" \"$(date +%Z)\" \"$(date +%z)\""
+    private static let inspectConcurrencyLimit = 2
 
     init(runner: SSHRunning = SSHProcessRunner()) {
         self.runner = runner
@@ -39,48 +40,107 @@ final class LiveDokkuClient: DokkuClient, @unchecked Sendable {
         )
 
         let appNames = Self.parseAppsList(appsResult.stdout)
-        var statuses: [AppStatus] = []
-        statuses.reserveCapacity(appNames.count)
-
-        for appName in appNames {
-            do {
-                let reportResult = try await runner.run(
-                    target: target,
-                    port: validatedConfig.port,
-                    remoteCommand: "dokku ps:inspect \(Self.shellEscape(appName))",
-                    timeout: 15
-                )
-
-                let parsedStatus = try Self.parseInspectResult(reportResult.stdout, appName: appName)
-
-                statuses.append(
-                    AppStatus(
-                        appName: appName,
-                        state: parsedStatus.state,
-                        rawStatus: parsedStatus.rawStatus,
-                        checkedAt: checkedAt,
-                        errorMessage: nil,
-                        details: parsedStatus.details,
-                        letsEncrypt: letsEncryptByApp[appName.lowercased()]
-                    )
-                )
-            } catch {
-                logger.error("Failed to fetch status for app \(appName, privacy: .public): \(error.localizedDescription, privacy: .public)")
-                statuses.append(
-                    AppStatus(
-                        appName: appName,
-                        state: .unknown,
-                        rawStatus: nil,
-                        checkedAt: checkedAt,
-                        errorMessage: error.localizedDescription,
-                        details: nil,
-                        letsEncrypt: letsEncryptByApp[appName.lowercased()]
-                    )
-                )
-            }
-        }
+        let statuses = await fetchStatuses(
+            appNames: appNames,
+            target: target,
+            port: validatedConfig.port,
+            checkedAt: checkedAt,
+            letsEncryptByApp: letsEncryptByApp
+        )
 
         return statuses.sorted { $0.appName.localizedCaseInsensitiveCompare($1.appName) == .orderedAscending }
+    }
+
+    private func fetchStatuses(
+        appNames: [String],
+        target: String,
+        port: Int,
+        checkedAt: Date,
+        letsEncryptByApp: [String: AppLetsEncryptStatus]
+    ) async -> [AppStatus] {
+        await withTaskGroup(of: AppStatus.self, returning: [AppStatus].self) { group in
+            var appIterator = appNames.makeIterator()
+            var statuses: [AppStatus] = []
+            statuses.reserveCapacity(appNames.count)
+
+            let initialTaskCount = min(Self.inspectConcurrencyLimit, appNames.count)
+            for _ in 0..<initialTaskCount {
+                guard let appName = appIterator.next() else {
+                    break
+                }
+
+                let letsEncrypt = letsEncryptByApp[appName.lowercased()]
+                group.addTask { [self] in
+                    await fetchStatus(
+                        appName: appName,
+                        target: target,
+                        port: port,
+                        checkedAt: checkedAt,
+                        letsEncrypt: letsEncrypt
+                    )
+                }
+            }
+
+            while let status = await group.next() {
+                statuses.append(status)
+
+                guard let appName = appIterator.next() else {
+                    continue
+                }
+
+                let letsEncrypt = letsEncryptByApp[appName.lowercased()]
+                group.addTask { [self] in
+                    await fetchStatus(
+                        appName: appName,
+                        target: target,
+                        port: port,
+                        checkedAt: checkedAt,
+                        letsEncrypt: letsEncrypt
+                    )
+                }
+            }
+
+            return statuses
+        }
+    }
+
+    private func fetchStatus(
+        appName: String,
+        target: String,
+        port: Int,
+        checkedAt: Date,
+        letsEncrypt: AppLetsEncryptStatus?
+    ) async -> AppStatus {
+        do {
+            let reportResult = try await runner.run(
+                target: target,
+                port: port,
+                remoteCommand: "dokku ps:inspect \(Self.shellEscape(appName))",
+                timeout: 15
+            )
+
+            let parsedStatus = try Self.parseInspectResult(reportResult.stdout, appName: appName)
+            return AppStatus(
+                appName: appName,
+                state: parsedStatus.state,
+                rawStatus: parsedStatus.rawStatus,
+                checkedAt: checkedAt,
+                errorMessage: nil,
+                details: parsedStatus.details,
+                letsEncrypt: letsEncrypt
+            )
+        } catch {
+            logger.error("Failed to fetch status for app \(appName, privacy: .public): \(error.localizedDescription, privacy: .public)")
+            return AppStatus(
+                appName: appName,
+                state: .unknown,
+                rawStatus: nil,
+                checkedAt: checkedAt,
+                errorMessage: error.localizedDescription,
+                details: nil,
+                letsEncrypt: letsEncrypt
+            )
+        }
     }
 
     static func parseAppsList(_ output: String) -> [String] {
