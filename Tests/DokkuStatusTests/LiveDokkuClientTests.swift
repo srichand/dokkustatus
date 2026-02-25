@@ -294,6 +294,18 @@ final class LiveDokkuClientTests: XCTestCase {
         XCTAssertThrowsError(try LiveDokkuClient.parseInspectStatus("No status here", appName: "app-one"))
     }
 
+    func testFetchAppStatusesLimitsInspectConcurrencyToTwo() async throws {
+        let runner = InspectConcurrencyTrackingRunner(appNames: ["app-a", "app-b", "app-c", "app-d"])
+        let client = LiveDokkuClient(runner: runner)
+        let config = DokkuHostConfig(host: "example.com", user: "dokku", port: 22, sshAlias: nil)
+
+        let statuses = try await client.fetchAppStatuses(config: config)
+        let maxObservedConcurrency = await runner.maxObservedConcurrency()
+
+        XCTAssertEqual(statuses.map(\.appName), ["app-a", "app-b", "app-c", "app-d"])
+        XCTAssertEqual(maxObservedConcurrency, 2)
+    }
+
     func testFetchAppStatusesReturnsUnknownForPerAppFailures() async throws {
         let runner = MockSSHRunner(
             responses: [
@@ -398,6 +410,41 @@ private actor MockSSHRunner: SSHRunning {
         }
 
         return try response.get()
+    }
+}
+
+private actor InspectConcurrencyTrackingRunner: SSHRunning {
+    private let appNames: [String]
+    private var activeInspectCount = 0
+    private var maxInspectConcurrency = 0
+
+    init(appNames: [String]) {
+        self.appNames = appNames
+    }
+
+    func run(target: String, port: Int, remoteCommand: String, timeout: TimeInterval) async throws -> SSHCommandResult {
+        if remoteCommand == "dokku apps:list" {
+            return SSHCommandResult(stdout: appNames.joined(separator: "\n") + "\n", stderr: "", exitCode: 0)
+        }
+
+        if remoteCommand.hasPrefix("dokku ps:inspect ") {
+            activeInspectCount += 1
+            maxInspectConcurrency = max(maxInspectConcurrency, activeInspectCount)
+            defer { activeInspectCount -= 1 }
+
+            try await Task.sleep(nanoseconds: 100_000_000)
+            return SSHCommandResult(
+                stdout: "[{\"State\":{\"Running\":true,\"Status\":\"running\"}}]",
+                stderr: "",
+                exitCode: 0
+            )
+        }
+
+        throw MockError.failed
+    }
+
+    func maxObservedConcurrency() -> Int {
+        maxInspectConcurrency
     }
 }
 
