@@ -1,5 +1,7 @@
 # DokkuStatus
 
+[![Swift Build](https://github.com/srichand/dokkustatus/actions/workflows/swift.yml/badge.svg?branch=main)](https://github.com/srichand/dokkustatus/actions/workflows/swift.yml)
+
 DokkuStatus is a macOS menu bar app that checks Dokku app health over SSH and shows a quick running/total summary with drill-down operational details.
 
 ## Features
