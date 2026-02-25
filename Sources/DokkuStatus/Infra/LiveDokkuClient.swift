@@ -103,7 +103,7 @@ final class LiveDokkuClient: DokkuClient, @unchecked Sendable {
         let parsedRemoteTimeZone = RemoteTimeZoneContext(
             identifier: normalizedString(remoteTimeZoneIdentifier),
             abbreviation: normalizedString(remoteTimeZoneAbbreviation),
-            offset: normalizedUTCOffset(remoteTimeZoneOffset)
+            offset: TimeZoneOffsetParser.normalizedUTCOffset(remoteTimeZoneOffset)
         )
         let remoteTimeZone: RemoteTimeZoneContext? =
             (parsedRemoteTimeZone.identifier != nil ||
@@ -229,11 +229,6 @@ final class LiveDokkuClient: DokkuClient, @unchecked Sendable {
 
             if let statusText {
                 statuses.append(statusText)
-                if statusText.lowercased().hasPrefix("running") {
-                    hasRunning = true
-                } else {
-                    hasNonRunning = true
-                }
             }
 
             let processIdentifier = processIdentifier(for: container)
@@ -362,7 +357,7 @@ final class LiveDokkuClient: DokkuClient, @unchecked Sendable {
 
         let identifier = columns.indices.contains(0) ? normalizedString(columns[0]) : nil
         let abbreviation = columns.indices.contains(1) ? normalizedString(columns[1]) : nil
-        let offset = columns.indices.contains(2) ? normalizedUTCOffset(columns[2]) : nil
+        let offset = columns.indices.contains(2) ? TimeZoneOffsetParser.normalizedUTCOffset(columns[2]) : nil
 
         if identifier == nil, abbreviation == nil, offset == nil {
             return nil
@@ -384,27 +379,6 @@ final class LiveDokkuClient: DokkuClient, @unchecked Sendable {
         formatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
         formatter.timeZone = remoteTimeZone
         return formatter.date(from: normalizedValue)
-    }
-
-    private static func normalizedUTCOffset(_ value: String?) -> String? {
-        guard let value = normalizedString(value) else {
-            return nil
-        }
-
-        let normalized = value.replacingOccurrences(of: ":", with: "")
-        guard normalized.count == 5, normalized.first == "+" || normalized.first == "-" else {
-            return nil
-        }
-
-        let sign = normalized.prefix(1)
-        let digits = normalized.dropFirst()
-        guard digits.count == 4 else {
-            return nil
-        }
-
-        let hours = digits.prefix(2)
-        let minutes = digits.suffix(2)
-        return "\(sign)\(hours)\(minutes)"
     }
 
     private static func uniquePreservingOrder(_ values: [String]) -> [String] {
@@ -698,35 +672,11 @@ private struct RemoteTimeZoneContext {
             return timeZone
         }
 
-        guard let offset, let seconds = Self.secondsFromGMT(offset: offset) else {
+        guard let seconds = TimeZoneOffsetParser.secondsFromGMT(offset: offset) else {
             return nil
         }
 
         return TimeZone(secondsFromGMT: seconds)
-    }
-
-    private static func secondsFromGMT(offset: String) -> Int? {
-        let normalized = offset.replacingOccurrences(of: ":", with: "")
-        guard
-            normalized.count == 5,
-            let signCharacter = normalized.first,
-            let value = Int(normalized.dropFirst())
-        else {
-            return nil
-        }
-
-        let hours = value / 100
-        let minutes = value % 100
-        let seconds = (hours * 3600) + (minutes * 60)
-
-        switch signCharacter {
-        case "+":
-            return seconds
-        case "-":
-            return -seconds
-        default:
-            return nil
-        }
     }
 }
 

@@ -108,6 +108,24 @@ final class LiveDokkuClientTests: XCTestCase {
         XCTAssertEqual(parsed.rawStatus, "exited")
     }
 
+    func testParseInspectStatusPrefersRunningFlagOverStatusString() throws {
+        let output = """
+        [
+          {
+            "State": {
+              "Running": false,
+              "Status": "running"
+            }
+          }
+        ]
+        """
+
+        let parsed = try LiveDokkuClient.parseInspectStatus(output, appName: "app-one")
+
+        XCTAssertEqual(parsed.state, .notRunning)
+        XCTAssertEqual(parsed.rawStatus, "running")
+    }
+
     func testParseInspectStatusFromLiveAppAlphaRunning() throws {
         let output = try fixture(named: "ps-inspect-app-alpha.json")
 
