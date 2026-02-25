@@ -276,43 +276,11 @@ struct AppLetsEncryptStatus: Codable, Equatable {
             return timeZone
         }
 
-        guard let seconds = Self.secondsFromGMT(offset: serverTimeZoneOffset) else {
+        guard let seconds = TimeZoneOffsetParser.secondsFromGMT(offset: serverTimeZoneOffset) else {
             return nil
         }
 
         return TimeZone(secondsFromGMT: seconds)
-    }
-
-    private static func secondsFromGMT(offset: String?) -> Int? {
-        guard let raw = offset?.trimmingCharacters(in: .whitespacesAndNewlines), !raw.isEmpty else {
-            return nil
-        }
-
-        let normalized = raw.replacingOccurrences(of: ":", with: "")
-        guard normalized.count == 5 else {
-            return nil
-        }
-
-        guard let signCharacter = normalized.first else {
-            return nil
-        }
-        let digits = normalized.dropFirst()
-        guard let value = Int(digits) else {
-            return nil
-        }
-
-        let hours = value / 100
-        let minutes = value % 100
-        let seconds = (hours * 3600) + (minutes * 60)
-
-        switch signCharacter {
-        case "+":
-            return seconds
-        case "-":
-            return -seconds
-        default:
-            return nil
-        }
     }
 }
 
