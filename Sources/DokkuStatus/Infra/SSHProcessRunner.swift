@@ -46,7 +46,7 @@ final class SSHProcessRunner: SSHRunning, @unchecked Sendable {
         remoteCommand: String,
         timeout: TimeInterval = 15
     ) async throws -> SSHCommandResult {
-        try await Task.detached(priority: .utility) { [executablePath, logger] in
+        let task = Task.detached(priority: .utility) { [executablePath, logger] in
             let process = Process()
             process.executableURL = URL(fileURLWithPath: executablePath)
             process.arguments = ["-o", "BatchMode=yes", "-p", "\(port)", target, remoteCommand]
@@ -106,6 +106,12 @@ final class SSHProcessRunner: SSHRunning, @unchecked Sendable {
             }
 
             return result
-        }.value
+        }
+
+        return try await withTaskCancellationHandler {
+            try await task.value
+        } onCancel: {
+            task.cancel()
+        }
     }
 }
