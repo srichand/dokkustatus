@@ -1,11 +1,24 @@
+# macOS
 .DS_Store
-/.build
+
+# Swift Package Manager
+/.build/
+/.swiftpm/
 /Packages
-xcuserdata/
+
+# Xcode build and user data
 DerivedData/
 .xcode-derived/
-.swiftpm/configuration/registries.json
-.swiftpm/xcode/package.xcworkspace/contents.xcworkspacedata
+xcuserdata/
+*.xcworkspace/xcuserdata/
+
+# Debug and archive outputs
+*.dSYM
+*.xcarchive
+
+# Local machine secrets and scripts
 .netrc
 /smoke-test.local.sh
+
+# Project-generated output
 /dist/
